@@ -4,11 +4,14 @@ from typing import Callable
 
 class Button:
     def __init__(self, text: str, padding: int = 10, border=False):
+        self.text_string = text
         self.font_color = colors.FONT_COLOR_BLACK
+        self.border_color = colors.FONT_COLOR_BLACK
         self.font = fonts.DEFAULT_FONT
         self.padding = padding
         self.is_pressed = False # used for button press
         self.border = border
+        self.disable = False
         # Create and set the initial text
         self.update_text(text)
 
@@ -38,7 +41,7 @@ class Button:
     def display(self, screen: pygame.Surface):
         # Draw the button rectangle (border)
         if self.border:
-            pygame.draw.rect(screen, colors.FONT_COLOR_BLACK, self.button_rect, 2)
+            pygame.draw.rect(screen, self.border_color, self.button_rect, 2)
 
         # Draw the text on the screen
         screen.blit(self.text, self.text_rect)
@@ -48,6 +51,8 @@ class Button:
         pygame.draw.rect(screen, background_color, self.button_rect)
 
     def on_click(self, event: pygame.event.Event, fnc: Callable[[], None]) -> bool:
+        if self.disable: return False
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.button_rect.collidepoint(event.pos):
                 self.is_pressed = True
@@ -59,3 +64,10 @@ class Button:
                 self.is_pressed = False
                 return True
         return False
+
+    def disable_button(self):
+        self.disable = True
+        self.font_color = colors.FONT_COLOR_GREY
+        self.border_color = colors.FONT_COLOR_GREY
+        self.update_text(self.text_string)
+        

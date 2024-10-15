@@ -2,4 +2,4 @@ import pygame
 pygame.font.init()
 
 
-DEFAULT_FONT = pygame.font.Font(None, 45)
+DEFAULT_FONT = pygame.font.Font(None, 30)
