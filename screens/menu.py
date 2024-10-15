@@ -1,10 +1,7 @@
 from constants import colors
 import pygame
 from components.buttons.button import Button
-
-
-def start_button_action():
-    print("Going to game")
+from utils.screen_manager import ScreenManager
 
 def quit_button_action():
     pygame.quit()
@@ -13,7 +10,7 @@ def quit_button_action():
 
 
 class MenuPage:
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen: pygame.Surface, screen_manager : ScreenManager):
         self.screen = screen
         
         self.start_button = Button("Start")
@@ -25,7 +22,7 @@ class MenuPage:
 
         self.button_padding = 20
         self.menu_buttons = [
-            (self.start_button, start_button_action),
+            (self.start_button, lambda: screen_manager.set_screen("board_page")),
             (self.settings_button, None),
             (self.quit_button, quit_button_action),
         ]
