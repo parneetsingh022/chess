@@ -3,11 +3,12 @@ from constants import colors, fonts
 from typing import Callable
 
 class Button:
-    def __init__(self, text: str, padding: int = 10):
+    def __init__(self, text: str, padding: int = 10, border=False):
         self.font_color = colors.FONT_COLOR_BLACK
         self.font = fonts.DEFAULT_FONT
         self.padding = padding
         self.is_pressed = False # used for button press
+        self.border = border
         # Create and set the initial text
         self.update_text(text)
 
@@ -16,11 +17,14 @@ class Button:
         self.text = self.font.render(text, True, self.font_color)
         self.text_rect = self.text.get_rect()
 
-        # Update the button rectangle based on text size and padding
-        self.button_rect = self.text_rect.inflate(2 * self.padding, 2 * self.padding)
+        if self.border:
+            # Update the button rectangle based on text size and padding
+            self.button_rect = self.text_rect.inflate(2 * self.padding, 2 * self.padding)
 
-        # Center the text within the button_rect
-        self.text_rect.center = self.button_rect.center
+            # Center the text within the button_rect
+            self.text_rect.center = self.button_rect.center
+        else:
+            self.button_rect = self.text_rect
 
     def set_position(self, x: int, y: int, center: bool = False):
         if center:
@@ -33,7 +37,8 @@ class Button:
 
     def display(self, screen: pygame.Surface):
         # Draw the button rectangle (border)
-        pygame.draw.rect(screen, colors.FONT_COLOR_BLACK, self.button_rect, 2)
+        if self.border:
+            pygame.draw.rect(screen, colors.FONT_COLOR_BLACK, self.button_rect, 2)
 
         # Draw the text on the screen
         screen.blit(self.text, self.text_rect)
@@ -50,7 +55,7 @@ class Button:
             if self.is_pressed:
                 if self.button_rect.collidepoint(event.pos):
                     fnc()
-                    
+
                 self.is_pressed = False
                 return True
         return False
