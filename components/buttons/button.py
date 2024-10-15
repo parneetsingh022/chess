@@ -70,4 +70,7 @@ class Button:
         self.font_color = colors.FONT_COLOR_GREY
         self.border_color = colors.FONT_COLOR_GREY
         self.update_text(self.text_string)
+
+    def get_button_height(self):
+        return self.button_rect.height
         

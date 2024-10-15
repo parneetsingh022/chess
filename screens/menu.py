@@ -17,26 +17,46 @@ class MenuPage:
         self.screen = screen
         
         self.start_button = Button("Start")
+
+        self.settings_button = Button("Settings")
+        self.settings_button.disable_button()  # Will implement in future
+
         self.quit_button = Button("Quit")
+
+        self.button_padding = 20
+        self.menu_buttons = [
+            (self.start_button, start_button_action),
+            (self.settings_button, None),
+            (self.quit_button, quit_button_action),
+        ]
 
     def display(self, event : pygame.event.Event) -> None:
         self.screen.fill(colors.BACKGROUND_COLOR)
 
-        self.start_button.display(self.screen)
-        self.start_button.set_position(
-            self.screen.get_width()//2, 
-            self.screen.get_height()//3, 
-            center=True
-        )
-        self.start_button.on_click(event, start_button_action)
 
+        # Calculate the total height of the menu
+        total_menu_height = 0
+        for button, _ in self.menu_buttons:
+            total_menu_height += button.get_button_height() + self.button_padding
 
-        self.quit_button.set_position(
-            self.screen.get_width()//2, 
-            self.screen.get_height()//3 + 60, 
-            center=True
-        )
-        self.quit_button.display(self.screen)
-        self.quit_button.on_click(event, quit_button_action)
+        # Calculate the starting height of the menu
+        start_height = (
+            self.screen.get_height() - total_menu_height
+        ) // 2
+
+        # Display the menu buttons on the screen
+        del_y = 0
+        for button, action in self.menu_buttons:
+            button.display(self.screen)
+            button.set_position(
+                self.screen.get_width()//2, 
+                start_height + del_y, 
+                center=True
+            )
+
+            del_y += (
+                button.get_button_height() + self.button_padding
+            )
+            button.on_click(event, action)
 
         pygame.display.update()
