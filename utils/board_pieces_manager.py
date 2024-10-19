@@ -1,12 +1,13 @@
 import pygame
 
 class BoardPiecesManager:
-    def __init__(self, screen: pygame.Surface, square_size: int):
+    def __init__(self, screen: pygame.Surface, square_size: int, player: str):
         self.screen = screen
         self.image = pygame.image.load("assets/chess_pieces_edited.png").convert_alpha()
         self.piece_width = 128  # Assuming each piece is 128x128 pixels
         self.piece_height = 128
         self.square_size = square_size
+        self.player = player
 
     def extract_piece(self, row, col):
         """
@@ -35,6 +36,12 @@ class BoardPiecesManager:
         Returns:
             None
         """
+        # Adjust the coordinates based on the player's perspective
+        if self.player == "black":
+            x = 9 - x
+            y = 9 - y
+
+
         x = (x - 1) * self.square_size
         y = (y - 1) * self.square_size
 
