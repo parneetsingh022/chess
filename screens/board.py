@@ -18,5 +18,12 @@ class BoardPage:
         black_color = (0, 0, 0)
         white_color = (255, 255, 255)
 
+        # if event.type == pygame.MOUSEMOTION:
+        #     x, y = event.pos
+        #     x,y = self.chess_board_manager.get_square_loc(x, y)
+        #     color = self.chess_board_manager.get_square_color(x, y)
+        #     print(self.chess_board_manager.get_square_name(x,y))
+
+
         self.chess_board_manager.draw_board(black_color, white_color)
         pygame.display.update()

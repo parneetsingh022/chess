@@ -43,19 +43,6 @@ class ChessBoardManager:
 
     def get_loc(self, x: int, y: int) -> Tuple[int, int]:
         """
-        Convert pixel coordinates to board coordinates.
-
-        Args:
-            x (int): The x-coordinate in pixels.
-            y (int): The y-coordinate in pixels.
-
-        Returns:
-            Tuple[int, int]: The board coordinates (row, column).
-        """
-        return x // self._square_size, y // self._square_size
-
-    def get_square_loc(self, x: int, y: int) -> Tuple[int, int]:
-        """
         Convert board coordinates to pixel coordinates.
 
         Args:
@@ -65,9 +52,47 @@ class ChessBoardManager:
         Returns:
             Tuple[int, int]: The pixel coordinates (x, y).
         """
+        x -= 1
+        y -= 1
         return x * self._square_size, y * self._square_size
 
-    def get_loc_color(self, x: int, y: int) -> str:
+    def get_square_loc(self, x: int, y: int) -> Tuple[int, int]:
+        """
+        Convert pixel coordinates to board coordinates.
+
+        Args:
+            x (int): The x-coordinate in pixels.
+            y (int): The y-coordinate in pixels.
+
+        Returns:
+            Tuple[int, int]: The board coordinates (row, column).
+        """
+        return (x // self._square_size) + 1, (y // self._square_size) + 1
+    
+    def get_square_name(self, x: int, y: int) -> str:
+        """
+        Get the name of the square at the given board coordinates.
+
+        Args:
+            x (int): The row on the board.
+            y (int): The column on the board.
+
+        Returns:
+            str: The name of the square (e.g., "a1", "h8").
+        """
+        x = int(x) - 1
+        y = int(y) - 1
+
+        if self.player == "white":
+            file_name = chr(97 + x)
+            rank_name = str(8 - y)
+        else:
+            file_name = chr(97 + (7 - x))
+            rank_name = str(y + 1)
+
+        return file_name + rank_name
+
+    def get_square_color(self, x: int, y: int) -> str:
         """
         Get the color of the square at the given board coordinates.
 
