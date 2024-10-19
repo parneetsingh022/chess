@@ -13,7 +13,7 @@ theme = ThemeReader()
 
 pygame.init()
 
-screen = pygame.display.set_mode((650, 650))
+screen = pygame.display.set_mode((650, 650), pygame.DOUBLEBUF)
 pygame.display.set_caption("Chess")
 
 WHITE = (255, 255, 255)
