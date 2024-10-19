@@ -25,7 +25,7 @@ WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 
-current_screen = "board_page"
+current_screen = "menu"
 
 screen_manager = screen_manager.ScreenManager(screen)
 
@@ -47,14 +47,12 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        screen_manager.display_current_screen(event)
+        
     
     # Clear the screen
     screen.fill(colors.BACKGROUND_COLOR)
     
-    # Display the current screen
-    screen_manager.display_current_screen(None)
-    
+    screen_manager.display_current_screen(event)
     # Update the display
     pygame.display.flip()
     
