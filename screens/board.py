@@ -11,7 +11,7 @@ class BoardPage:
         self.screen_manager = screen_manager
         self.player = "white"
         self.chess_board_manager = ChessBoardManager(screen, screen.get_width())
-        self.board_pieces_manager = BoardPiecesManager(screen)
+        self.board_pieces_manager = BoardPiecesManager(screen, self.chess_board_manager._square_size)
 
     def display(self, event: pygame.event.Event) -> None:
         self.screen.fill(colors.BACKGROUND_COLOR)
@@ -28,4 +28,4 @@ class BoardPage:
 
 
         self.chess_board_manager.draw_board(black_color, white_color)
-        self.board_pieces_manager.display_piece(0, 0, 3,1)
+        self.board_pieces_manager.display_piece(1, 8, 0,1)

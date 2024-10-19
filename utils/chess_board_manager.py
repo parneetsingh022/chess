@@ -108,3 +108,12 @@ class ChessBoardManager:
             return "white" if color == "black" else "black"
 
         return color
+    
+    def get_square_size(self) -> int:
+        """
+        Get the size of a square on the chessboard.
+
+        Returns:
+            int: The size of a square.
+        """
+        return self._square_size

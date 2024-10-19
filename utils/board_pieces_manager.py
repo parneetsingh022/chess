@@ -1,11 +1,12 @@
 import pygame
 
 class BoardPiecesManager:
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen: pygame.Surface, square_size: int):
         self.screen = screen
         self.image = pygame.image.load("assets/chess_pieces_edited.png").convert_alpha()
         self.piece_width = 128  # Assuming each piece is 128x128 pixels
         self.piece_height = 128
+        self.square_size = square_size
 
     def extract_piece(self, row, col):
         """
@@ -26,18 +27,21 @@ class BoardPiecesManager:
         Display the extracted piece on the screen at the specified coordinates and draw a rectangle around it.
 
         Args:
-            x (int): The x-coordinate to display the piece.
-            y (int): The y-coordinate to display the piece.
+            x (int): The x square from(1-8).
+            y (int): The y square from(1-8).
             row (int): The row of the piece in the grid.
             col (int): The column of the piece in the grid.
 
         Returns:
             None
         """
+        x = (x - 1) * self.square_size
+        y = (y - 1) * self.square_size
+
         piece = self.extract_piece(row, col)
 
         # Calculate the new size for the piece
-        new_size = (self.screen.get_width() // 8, self.screen.get_height() // 8)
+        new_size = (self.square_size, self.square_size)
 
         # Resize the piece
         resized_piece = pygame.transform.scale(piece, new_size)
