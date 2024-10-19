@@ -32,7 +32,7 @@ screen_manager.add_screen("menu", menu_page)
 screen_manager.add_screen("board_page", board_page)
 
 # Set the initial screen
-screen_manager.set_screen("menu")
+screen_manager.set_screen(current_screen)
 
 # Create a Clock object to control the frame rate
 clock = pygame.time.Clock()
