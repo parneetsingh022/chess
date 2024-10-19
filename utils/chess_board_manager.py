@@ -30,12 +30,7 @@ class ChessBoardManager:
         """
         for i in range(0, 8):
             for j in range(0, 8):
-                color1, color2 = (white_color, black_color) if (i + j) % 2 == 0 else (black_color, white_color)
-                
-                if self.player == "white":
-                    color = color1
-                else:
-                    color = color2
+                color = white_color if (i + j) % 2 == 0 else black_color
                     
                 draw_square(i, j, self._square_size, color, self.screen)
                 
