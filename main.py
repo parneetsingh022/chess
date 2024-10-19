@@ -25,7 +25,7 @@ WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 
-current_screen = "menu"
+current_screen = "board_page"
 
 screen_manager = screen_manager.ScreenManager(screen)
 
