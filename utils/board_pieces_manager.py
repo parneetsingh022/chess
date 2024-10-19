@@ -3,7 +3,7 @@ import pygame
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface):
         self.screen = screen
-        self.image = pygame.image.load("assets/chess_pieces.png").convert_alpha()
+        self.image = pygame.image.load("assets/chess_pieces_edited.png").convert_alpha()
         self.piece_width = 128  # Assuming each piece is 128x128 pixels
         self.piece_height = 128
 
