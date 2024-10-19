@@ -39,7 +39,6 @@ class ChessBoardManager:
                     
                 draw_square(i, j, self._square_size, color, self.screen)
                 
-        pygame.display.update()
 
     def get_loc(self, x: int, y: int) -> Tuple[int, int]:
         """

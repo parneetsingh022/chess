@@ -44,6 +44,3 @@ class BoardPiecesManager:
 
         # Display the resized piece on the screen
         self.screen.blit(resized_piece, (x, y))
-        
-        # Update the display
-        pygame.display.update()

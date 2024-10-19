@@ -29,5 +29,3 @@ class BoardPage:
 
         self.chess_board_manager.draw_board(black_color, white_color)
         self.board_pieces_manager.display_piece(0, 0, 6,5)
-        
-        pygame.display.update()
