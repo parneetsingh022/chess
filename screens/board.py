@@ -11,11 +11,6 @@ class BoardPage:
         self.screen = screen
         self.screen_manager = screen_manager
         self.chess_board_manager = ChessBoardManager(screen, screen.get_width())
-        # self.board_pieces_manager = BoardPiecesManager(
-        #     screen, 
-        #     self.chess_board_manager._square_size,
-        #     self.chess_board_manager.player
-        # )
 
         self.piece1 = Piece(
             screen,
