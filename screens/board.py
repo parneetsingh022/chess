@@ -34,6 +34,5 @@ class BoardPage:
                 
                 if self.board_pieces_manager.selected_piece:
                     self.board_pieces_manager.move_piece(square_pos)
-                    self.board_pieces_manager.select_piece(None)
                 else:
                     self.board_pieces_manager.select_piece(square_pos)

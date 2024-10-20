@@ -48,10 +48,13 @@ class BoardPiecesManager:
         self.selected_piece = pos
 
     def move_piece(self, to_pos):
+        
         if not self.selected_piece:
             return
         
         from_pos = self.selected_piece
+        if to_pos == from_pos:
+            return
         
         for i, (piece, x, y) in enumerate(self.pieces):
             if (x, y) == from_pos:
