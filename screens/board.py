@@ -22,7 +22,7 @@ class BoardPage:
             self.chess_board_manager._square_size,
             self.chess_board_manager.player,
             PieceType.KING, 
-            PieceColor.BLACK
+            PieceColor.WHITE
         )
 
     def display(self, event: pygame.event.Event) -> None:

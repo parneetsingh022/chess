@@ -22,8 +22,6 @@ class Piece:
         self.player = player
         self.piece_type = piece_type
         self.piece_color = piece_color
-        self.x = 0
-        self.y = 0
 
         self.piece_width = 128  # Assuming each piece is 128x128 pixels
         self.piece_height = 128
