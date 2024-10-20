@@ -11,14 +11,8 @@ class BoardPage:
         self.screen = screen
         self.screen_manager = screen_manager
         self.chess_board_manager = ChessBoardManager(screen, screen.get_width())
-
-        self.piece1 = Piece(
-            screen,
-            self.chess_board_manager._square_size,
-            self.chess_board_manager.player,
-            PieceType.KING, 
-            PieceColor.WHITE
-        )
+        self.board_pieces_manager = BoardPiecesManager(screen, self.chess_board_manager._square_size, self.chess_board_manager.player)
+        self.mouse_down = False
 
     def display(self, event: pygame.event.Event) -> None:
         self.screen.fill(colors.BACKGROUND_COLOR)
@@ -28,5 +22,18 @@ class BoardPage:
         white_color = (255, 255, 255)
 
         self.chess_board_manager.draw_board(black_color, white_color)
-        self.piece1.display(1,1)
-        
+        self.board_pieces_manager.display()
+
+        if event:
+            if event.type == pygame.MOUSEBUTTONDOWN and not self.mouse_down:
+                self.mouse_down = True
+            elif event.type == pygame.MOUSEBUTTONUP and self.mouse_down:
+                self.mouse_down = False
+                x, y = event.pos
+                square_pos = self.chess_board_manager.get_square_loc(x, y)
+                
+                if self.board_pieces_manager.selected_piece:
+                    self.board_pieces_manager.move_piece(square_pos)
+                    self.board_pieces_manager.select_piece(None)
+                else:
+                    self.board_pieces_manager.select_piece(square_pos)

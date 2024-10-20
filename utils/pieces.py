@@ -1,6 +1,5 @@
 from enum import Enum
 import pygame
-from .board_pieces_manager import BoardPiecesManager
 
 class PieceType(Enum):
     PAWN = 0
