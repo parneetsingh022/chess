@@ -7,7 +7,7 @@ from .movements.rook import rook_moves
 from .movements.king import king_moves
 from .movements.queen import queen_moves
 
-def get_possible_positions(piece,color,board, x, y, king_moved):
+def get_possible_positions(piece, color, board, x, y, king_moved):
     if piece.piece_type == PieceType.PAWN:
         return pawn_moves(board, color, x, y)
     elif piece.piece_type == PieceType.BISHOP:
@@ -20,9 +20,8 @@ def get_possible_positions(piece,color,board, x, y, king_moved):
         return king_moves(board, color, x, y, king_moved)
     elif piece.piece_type == PieceType.QUEEN:
         return queen_moves(board, color, x, y)
-
-
     return []
+
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str):
         self.screen = screen
@@ -42,6 +41,13 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
         self.king_moved = False
+
+    def _draw_rectangle(self, x, y):
+        x = (x - 1) * self.square_size
+        y = (y - 1) * self.square_size
+
+        pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
+        pygame.display.flip()
 
     def _initialize_pieces(self):
         pieces = []
@@ -64,6 +70,10 @@ class BoardPiecesManager:
     def display(self):
         for piece, x, y in self.pieces:
             piece.display(x, y)
+        
+        # Draw rectangle around the selected piece
+        if self.selected_piece:
+            self._draw_rectangle(self.selected_piece[0], self.selected_piece[1])
 
     def select_piece(self, pos):
         if pos is None:
@@ -74,14 +84,11 @@ class BoardPiecesManager:
         for piece, x, y in self.pieces:
             if (x, y) == pos:
                 self.selected_piece = pos
-                    
-                moves = get_possible_positions(piece,piece.piece_color.name.lower(), self.layout, x, y, self.king_moved)
+                moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, self.king_moved)
                 self.selected_possible_moves = moves
-
                 return
             
         self.selected_piece = None
-
 
     def move_piece(self, to_pos):
         if not self.selected_piece:
