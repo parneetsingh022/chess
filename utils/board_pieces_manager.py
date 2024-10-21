@@ -45,7 +45,15 @@ class BoardPiecesManager:
         if pos is None:
             self.selected_piece = None
             return
-        self.selected_piece = pos
+        
+        # Check if there is a piece at the given position
+        for piece, x, y in self.pieces:
+            if (x, y) == pos:
+                self.selected_piece = pos
+                return
+            
+        self.selected_piece = None
+
 
     def move_piece(self, to_pos):
         
