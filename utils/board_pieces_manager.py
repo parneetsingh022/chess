@@ -141,6 +141,10 @@ class BoardPiecesManager:
         if (to_x + 1, to_y + 1) not in self.selected_possible_moves:
             self.selected_piece = None
             self.selected_possible_moves = []
+
+            if self.layout[to_y][to_x][0] == self.layout[from_y][from_x][0]:
+                self.select_piece(to_pos)
+            
             return
 
         captured_piece_index = None  # Track index of captured piece for removal
