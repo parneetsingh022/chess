@@ -143,11 +143,17 @@ class BoardPiecesManager:
         from_x, from_y = int(from_pos[0]) - 1, int(from_pos[1]) - 1
         to_x, to_y = int(to_pos[0]) - 1, int(to_pos[1]) - 1
 
+        # Check if to_pos is within the bounds of the board
+        if not (0 <= to_x < len(self.layout[0]) and 0 <= to_y < len(self.layout)):
+            self.selected_piece = None
+            self.selected_possible_moves = []
+            return
+
         if (to_x + 1, to_y + 1) not in self.selected_possible_moves:
             self.selected_piece = None
             self.selected_possible_moves = []
 
-            if self.layout[to_y][to_x][0] == self.layout[from_y][from_x][0]:
+            if self.layout[to_y][to_x] and self.layout[to_y][to_x][0] == self.layout[from_y][from_x][0]:
                 self.select_piece(to_pos)
             
             return
@@ -188,4 +194,3 @@ class BoardPiecesManager:
             if (x, y) == pos:
                 return i
         return None
-
