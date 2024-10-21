@@ -50,13 +50,13 @@ class BoardPiecesManager:
         for piece, x, y in self.pieces:
             if (x, y) == pos:
                 self.selected_piece = pos
+
                 return
             
         self.selected_piece = None
 
 
     def move_piece(self, to_pos):
-        
         if not self.selected_piece:
             return
         
@@ -64,8 +64,17 @@ class BoardPiecesManager:
         if to_pos == from_pos:
             return
         
+        # Convert coordinates to integers
+        from_x, from_y = int(from_pos[0]), int(from_pos[1])
+        to_x, to_y = int(to_pos[0]), int(to_pos[1])
+        
         for i, (piece, x, y) in enumerate(self.pieces):
-            if (x, y) == from_pos:
-                self.pieces[i] = (piece, to_pos[0], to_pos[1])
+            if (x, y) == (from_x, from_y):
+                # Update the layout
+                self.layout[from_y - 1][from_x - 1] = ""
+                self.layout[to_y - 1][to_x - 1] = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+                
+                # Move the piece
+                self.pieces[i] = (piece, to_x, to_y)
                 break
         self.selected_piece = None  # Deselect the piece after moving
