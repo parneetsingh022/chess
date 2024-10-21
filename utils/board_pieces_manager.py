@@ -41,6 +41,7 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
         self.king_moved = False
+        self.turn = player
 
     def _draw_rectangle(self, x, y):
         x = (x - 1) * self.square_size
@@ -109,6 +110,10 @@ class BoardPiecesManager:
         for piece, x, y in self.pieces:
             if (x, y) == pos:
                 self.selected_piece = pos
+                if piece.piece_color.name.lower() != self.turn:
+                    self.selected_piece = None
+                    self.selected_possible_moves = []
+                    return
                 moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, self.king_moved)
                 self.selected_possible_moves = moves
                 return
@@ -165,6 +170,8 @@ class BoardPiecesManager:
                 # Set king_moved to True if the piece is a king
                 if piece.piece_type == PieceType.KING:
                     self.king_moved = True
+
+                self.turn = "white" if self.turn == "black" else "black"
 
                 break
 
