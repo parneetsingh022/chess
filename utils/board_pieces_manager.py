@@ -104,37 +104,68 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
 
+    def remove_piece(self, pos):
+        for i, (_, x, y) in enumerate(self.pieces):
+            if (x, y) == pos:
+                # Remove the piece from both the pieces list and the layout
+                self.layout[y - 1][x - 1] = ""  # Convert to 0-based for layout
+                self.pieces.pop(i)
+                break
+
     def move_piece(self, to_pos):
         if not self.selected_piece:
             return
-        
+
         from_pos = self.selected_piece
+        print(from_pos, to_pos)
         if to_pos == from_pos:
             self.selected_piece = None
             self.selected_possible_moves = []
             return
-        
-        # Convert coordinates to integers
-        from_x, from_y = int(from_pos[0]), int(from_pos[1])
-        to_x, to_y = int(to_pos[0]), int(to_pos[1])
 
-        if (to_x, to_y) not in self.selected_possible_moves:
+        # Convert 1-based to 0-based coordinates for layout access
+        from_x, from_y = int(from_pos[0]) - 1, int(from_pos[1]) - 1
+        to_x, to_y = int(to_pos[0]) - 1, int(to_pos[1]) - 1
+
+        if (to_x + 1, to_y + 1) not in self.selected_possible_moves:
             self.selected_piece = None
             self.selected_possible_moves = []
             return
-        
+
+        captured_piece_index = None  # Track index of captured piece for removal
+
         for i, (piece, x, y) in enumerate(self.pieces):
-            if (x, y) == (from_x, from_y):
-                # Update the layout
-                self.layout[from_y - 1][from_x - 1] = ""
-                self.layout[to_y - 1][to_x - 1] = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
-                
-                # Move the piece
-                self.pieces[i] = (piece, to_x, to_y)
+            if (x - 1, y - 1) == (from_x, from_y):
+                # Check if there is an opponent piece at the destination
+                if self.layout[to_y][to_x] != "":
+                    print("CAPTURED")
+                    captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))  # Capture piece index
+
+                # Update the layout for the moved piece
+                self.layout[from_y][from_x] = ""  # Clear the old position
+                print(from_x, from_y, to_x, to_y)
+                self.layout[to_y][to_x] = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+
+                # Move the piece in self.pieces
+                self.pieces[i] = (piece, to_x + 1, to_y + 1)  # Update to new position
 
                 # Set king_moved to True if the piece is a king
                 if piece.piece_type == PieceType.KING:
                     self.king_moved = True
+
                 break
-        self.selected_piece = None  # Deselect the piece after moving
+
+        # Remove the captured piece after the loop (to avoid list modification issues during iteration)
+        if captured_piece_index is not None:
+            self.pieces.pop(captured_piece_index)
+
+        self.selected_piece = None
         self.selected_possible_moves = []
+
+    def _get_piece_index_at_pos(self, pos):
+        """Helper function to get the index of the piece at the given position (1-based)."""
+        for i, (_, x, y) in enumerate(self.pieces):
+            if (x, y) == pos:
+                return i
+        return None
+
