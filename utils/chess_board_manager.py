@@ -5,7 +5,7 @@ def draw_square(x: int, y: int, square_size, color: Tuple[int], screen: pygame.S
     pygame.draw.rect(screen, color, (x * square_size, y * square_size, square_size, square_size))
 
 class ChessBoardManager:
-    def __init__(self, screen: pygame.Surface, screen_width: int, player: str = "black"):
+    def __init__(self, screen: pygame.Surface, screen_width: int, player: str = "white"):
         self.screen = screen
         self.screen_width = screen_width
         self._square_size = screen_width // 8 + 0.5
