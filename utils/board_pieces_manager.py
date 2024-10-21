@@ -129,7 +129,6 @@ class BoardPiecesManager:
             return
 
         from_pos = self.selected_piece
-        print(from_pos, to_pos)
         if to_pos == from_pos:
             self.selected_piece = None
             self.selected_possible_moves = []
@@ -150,12 +149,10 @@ class BoardPiecesManager:
             if (x - 1, y - 1) == (from_x, from_y):
                 # Check if there is an opponent piece at the destination
                 if self.layout[to_y][to_x] != "":
-                    print("CAPTURED")
                     captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))  # Capture piece index
 
                 # Update the layout for the moved piece
                 self.layout[from_y][from_x] = ""  # Clear the old position
-                print(from_x, from_y, to_x, to_y)
                 self.layout[to_y][to_x] = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
 
                 # Move the piece in self.pieces
