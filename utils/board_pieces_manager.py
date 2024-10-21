@@ -1,6 +1,28 @@
 import pygame
 from .pieces import Piece, PieceType, PieceColor
+from .movements.pawn import pawn_moves
+from .movements.bishop import bishop_moves
+from .movements.knight import knight_moves
+from .movements.rook import rook_moves
+from .movements.king import king_moves
+from .movements.queen import queen_moves
 
+def get_possible_positions(piece,color,board, x, y, king_moved):
+    if piece.piece_type == PieceType.PAWN:
+        return pawn_moves(board, color, x, y)
+    elif piece.piece_type == PieceType.BISHOP:
+        return bishop_moves(board, color, x, y)
+    elif piece.piece_type == PieceType.KNIGHT:
+        return knight_moves(board, color, x, y)
+    elif piece.piece_type == PieceType.ROOK:
+        return rook_moves(board, color, x, y)
+    elif piece.piece_type == PieceType.KING:
+        return king_moves(board, color, x, y, king_moved)
+    elif piece.piece_type == PieceType.QUEEN:
+        return queen_moves(board, color, x, y)
+
+
+    return []
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str):
         self.screen = screen
@@ -18,6 +40,8 @@ class BoardPiecesManager:
         ]
         self.pieces = self._initialize_pieces()
         self.selected_piece = None
+        self.selected_possible_moves = []
+        self.king_moved = False
 
     def _initialize_pieces(self):
         pieces = []
@@ -50,6 +74,9 @@ class BoardPiecesManager:
         for piece, x, y in self.pieces:
             if (x, y) == pos:
                 self.selected_piece = pos
+                    
+                moves = get_possible_positions(piece,piece.piece_color.name.lower(), self.layout, x, y, self.king_moved)
+                self.selected_possible_moves = moves
 
                 return
             
@@ -62,11 +89,18 @@ class BoardPiecesManager:
         
         from_pos = self.selected_piece
         if to_pos == from_pos:
+            self.selected_piece = None
+            self.selected_possible_moves = []
             return
         
         # Convert coordinates to integers
         from_x, from_y = int(from_pos[0]), int(from_pos[1])
         to_x, to_y = int(to_pos[0]), int(to_pos[1])
+
+        if (to_x, to_y) not in self.selected_possible_moves:
+            self.selected_piece = None
+            self.selected_possible_moves = []
+            return
         
         for i, (piece, x, y) in enumerate(self.pieces):
             if (x, y) == (from_x, from_y):
@@ -76,5 +110,10 @@ class BoardPiecesManager:
                 
                 # Move the piece
                 self.pieces[i] = (piece, to_x, to_y)
+
+                # Set king_moved to True if the piece is a king
+                if piece.piece_type == PieceType.KING:
+                    self.king_moved = True
                 break
         self.selected_piece = None  # Deselect the piece after moving
+        self.selected_possible_moves = []
