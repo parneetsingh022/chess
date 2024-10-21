@@ -49,10 +49,22 @@ class BoardPiecesManager:
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
 
     def _draw_circle(self, x, y):
-        x = (x - 1) * self.square_size + self.square_size // 2
-        y = (y - 1) * self.square_size + self.square_size // 2
+        # Calculate the center of the square
+        x_center = (x - 1) * self.square_size + self.square_size // 2
+        y_center = (y - 1) * self.square_size + self.square_size // 2
 
-        pygame.draw.circle(self.screen, (105, 176, 50), (x, y), self.square_size // 4)
+        # Create a higher resolution surface (4 times the original size)
+        high_res_size = self.square_size * 4
+        high_res_surface = pygame.Surface((high_res_size, high_res_size), pygame.SRCALPHA)
+
+        # Draw the circle on the high resolution surface
+        pygame.draw.circle(high_res_surface, (105, 176, 50), (high_res_size // 2, high_res_size // 2), high_res_size // 6)
+
+        # Scale the high resolution surface down to the original size
+        scaled_surface = pygame.transform.smoothscale(high_res_surface, (self.square_size, self.square_size))
+
+        # Blit the scaled surface onto the main screen
+        self.screen.blit(scaled_surface, (x_center - self.square_size // 2, y_center - self.square_size // 2))
 
     def _initialize_pieces(self):
         pieces = []
