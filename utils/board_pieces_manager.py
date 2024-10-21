@@ -47,7 +47,12 @@ class BoardPiecesManager:
         y = (y - 1) * self.square_size
 
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
-        pygame.display.flip()
+
+    def _draw_circle(self, x, y):
+        x = (x - 1) * self.square_size + self.square_size // 2
+        y = (y - 1) * self.square_size + self.square_size // 2
+
+        pygame.draw.circle(self.screen, (105, 176, 50), (x, y), self.square_size // 4)
 
     def _initialize_pieces(self):
         pieces = []
@@ -74,10 +79,18 @@ class BoardPiecesManager:
         # Draw rectangle around the selected piece
         if self.selected_piece:
             self._draw_rectangle(self.selected_piece[0], self.selected_piece[1])
+        
+        # Draw circles for all possible moves
+        for move in self.selected_possible_moves:
+            self._draw_circle(move[0], move[1])
+        
+        # Update the display once after all drawing operations
+        pygame.display.flip()
 
     def select_piece(self, pos):
         if pos is None:
             self.selected_piece = None
+            self.selected_possible_moves = []
             return
         
         # Check if there is a piece at the given position
@@ -89,6 +102,7 @@ class BoardPiecesManager:
                 return
             
         self.selected_piece = None
+        self.selected_possible_moves = []
 
     def move_piece(self, to_pos):
         if not self.selected_piece:
