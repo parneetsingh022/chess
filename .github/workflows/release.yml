@@ -37,9 +37,11 @@ jobs:
 
           # Combine release notes, ensuring newlines are handled properly
           RELEASE_NOTES="${FORMATTED_NEW_FEATURES}\n\n${FORMATTED_BUG_FIXES}"
-          echo "::set-output name=version::$VERSION"
-          echo "::set-output name=notes::$RELEASE_NOTES"
-          echo "::set-output name=pre_release::$PRE_RELEASE"
+          
+          # Use -e to interpret escape sequences correctly
+          echo -e "::set-output name=version::$VERSION"
+          echo -e "::set-output name=notes::$RELEASE_NOTES"
+          echo -e "::set-output name=pre_release::$PRE_RELEASE"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
