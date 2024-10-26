@@ -20,17 +20,17 @@ jobs:
           PRE_RELEASE=$(echo "$RELEASE_INFO" | jq -r .pre_release)
 
           # Format New Features, include only if not empty
-          NEW_FEATURES=$(echo "$RELEASE_INFO" | jq -r '.release_notes.new_features | join("\n* ")')
+          NEW_FEATURES=$(echo "$RELEASE_INFO" | jq -r '.release_notes.new_features | select(. != null) | .[]' | sed 's/^/* /')
           if [ -n "$NEW_FEATURES" ]; then
-            FORMATTED_NEW_FEATURES="## New Features:\n* $NEW_FEATURES"
+            FORMATTED_NEW_FEATURES="## New Features:\n$NEW_FEATURES"
           else
             FORMATTED_NEW_FEATURES=""
           fi
 
           # Format Bug Fixes, include only if not empty
-          BUG_FIXES=$(echo "$RELEASE_INFO" | jq -r '.release_notes.bug_fixes | join("\n* ")')
+          BUG_FIXES=$(echo "$RELEASE_INFO" | jq -r '.release_notes.bug_fixes | select(. != null) | .[]' | sed 's/^/* /')
           if [ -n "$BUG_FIXES" ]; then
-            FORMATTED_BUG_FIXES="## Bug Fixes:\n* $BUG_FIXES"
+            FORMATTED_BUG_FIXES="## Bug Fixes:\n$BUG_FIXES"
           else
             FORMATTED_BUG_FIXES=""
           fi
