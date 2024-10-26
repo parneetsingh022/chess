@@ -7,7 +7,7 @@ from .movements.rook import rook_moves
 from .movements.king import king_moves
 from .movements.queen import queen_moves
 
-def get_possible_positions(piece, color, board, x, y, king_moved):
+def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
     if piece.piece_type == PieceType.PAWN:
         return pawn_moves(board, color, x, y)
     elif piece.piece_type == PieceType.BISHOP:
@@ -17,7 +17,7 @@ def get_possible_positions(piece, color, board, x, y, king_moved):
     elif piece.piece_type == PieceType.ROOK:
         return rook_moves(board, color, x, y)
     elif piece.piece_type == PieceType.KING:
-        return king_moves(board, color, x, y, king_moved)
+        return king_moves(board, color, x, y, king_moved, rook1_moved, rook2_moved)
     elif piece.piece_type == PieceType.QUEEN:
         return queen_moves(board, color, x, y)
     return []
@@ -40,8 +40,15 @@ class BoardPiecesManager:
         self.pieces = self._initialize_pieces()
         self.selected_piece = None
         self.selected_possible_moves = []
-        self.king_moved = False
         self.turn = player
+
+        self.white_king_moved = False
+        self.black_king_moved = False
+
+        self.white_rook1_moved = False
+        self.white_rook2_moved = False
+        self.black_rook1_moved = False
+        self.black_rook2_moved = False
 
     def _draw_rectangle(self, x, y):
         x = (x - 1) * self.square_size
@@ -114,7 +121,13 @@ class BoardPiecesManager:
                     self.selected_piece = None
                     self.selected_possible_moves = []
                     return
-                moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, self.king_moved)
+                if piece.piece_type == PieceType.KING:
+                    king_moved = self.white_king_moved if piece.piece_color == PieceColor.WHITE else self.black_king_moved
+                    rook1_moved = self.white_rook1_moved if piece.piece_color == PieceColor.WHITE else self.black_rook1_moved
+                    rook2_moved = self.white_rook2_moved if piece.piece_color == PieceColor.WHITE else self.black_rook2_moved
+                    moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, king_moved, rook1_moved, rook2_moved)
+                else:
+                    moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, False, False, False)
                 self.selected_possible_moves = moves
                 return
             
@@ -175,7 +188,42 @@ class BoardPiecesManager:
 
                 # Set king_moved to True if the piece is a king
                 if piece.piece_type == PieceType.KING:
-                    self.king_moved = True
+                    if piece.piece_color == PieceColor.WHITE:
+                        self.white_king_moved = True
+                    else:
+                        self.black_king_moved = True
+
+                    # Check for castling move
+                    if abs(to_x - from_x) == 2:
+                        if to_x > from_x:
+                            # Kingside castling
+                            rook_from_x = 7
+                            rook_to_x = to_x - 1
+                        else:
+                            # Queenside castling
+                            rook_from_x = 0
+                            rook_to_x = to_x + 1
+
+                        rook_y = from_y
+                        rook_piece_index = self._get_piece_index_at_pos((rook_from_x + 1, rook_y + 1))
+                        if rook_piece_index is not None:
+                            rook_piece, _, _ = self.pieces[rook_piece_index]
+                            self.layout[rook_y][rook_from_x] = ""  # Clear the old rook position
+                            self.layout[rook_y][rook_to_x] = f"{rook_piece.piece_color.name[0]}{rook_piece.piece_type.name[0]}"
+                            self.pieces[rook_piece_index] = (rook_piece, rook_to_x + 1, rook_y + 1)  # Update rook position
+
+                # Set rook_moved to True if the piece is a rook
+                if piece.piece_type == PieceType.ROOK:
+                    if piece.piece_color == PieceColor.WHITE:
+                        if from_x == 0 and from_y == 7:
+                            self.white_rook1_moved = True
+                        elif from_x == 7 and from_y == 7:
+                            self.white_rook2_moved = True
+                    else:
+                        if from_x == 0 and from_y == 0:
+                            self.black_rook1_moved = True
+                        elif from_x == 7 and from_y == 0:
+                            self.black_rook2_moved = True
 
                 self.turn = "white" if self.turn == "black" else "black"
 

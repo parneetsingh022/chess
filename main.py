@@ -54,7 +54,7 @@ while True:
     
     screen_manager.display_current_screen(event)
     # Update the display
-    pygame.display.flip()
+    pygame.display.update()
     
     # Control the frame rate
     clock.tick(60)  # Limit to 60 frames per second
