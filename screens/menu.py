@@ -24,7 +24,7 @@ class MenuPage:
             (self.quit_button, quit_button_action),
         ]
 
-        self.release_notes_file = "release-info.json"
+        self.release_notes_file = "release.json"
         self.version = read_version_from_file(self.release_notes_file)
 
         # Initialize font for version label

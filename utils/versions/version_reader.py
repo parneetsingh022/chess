@@ -7,5 +7,5 @@ def read_version_from_file(file_path):
 
 # Example usage
 if __name__ == "__main__":
-    version = read_version_from_file('release-info.json')
+    version = read_version_from_file('release.json')
     print(f"Version: {version}")

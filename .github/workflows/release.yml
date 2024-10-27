@@ -1,55 +1,77 @@
-name: Create Release
+name: Create Release from release.json
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on any push to the main branch
 
 jobs:
-  create-release:
+  create_release:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out the code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Read and format release information
-        id: release-info
+      - name: Set up GitHub CLI
         run: |
-          RELEASE_INFO=$(cat release-info.json)
-          VERSION=$(echo "$RELEASE_INFO" | jq -r .version)
-          PRE_RELEASE=$(echo "$RELEASE_INFO" | jq -r .pre_release)
+          sudo apt-get update
+          sudo apt-get install -y jq
+          echo "${{ secrets.WORKFLOW }}" | gh auth login --with-token
 
-          # Format New Features, include only if not empty
-          NEW_FEATURES=$(echo "$RELEASE_INFO" | jq -r '.release_notes.new_features | select(. != null) | .[]' | sed 's/^/* /')
-          if [ -n "$NEW_FEATURES" ]; then
-            FORMATTED_NEW_FEATURES="## New Features:\n$NEW_FEATURES"
-          else
-            FORMATTED_NEW_FEATURES=""
+      - name: Read release.json
+        id: read_json
+        run: |
+          RELEASE_FILE="release.json"
+          VERSION=$(jq -r '.version' $RELEASE_FILE)
+          DESCRIPTION=$(jq -r '.description' $RELEASE_FILE)
+          FEATURES=$(jq -r '.features[]?' $RELEASE_FILE | sed 's/^/- /')
+          BUG_FIXES=$(jq -r '."bug-fix"[]?' $RELEASE_FILE | sed 's/^/- /')
+
+          # Initialize RELEASE_NOTES with the description
+          RELEASE_NOTES="${DESCRIPTION}\n\n"
+
+          # Conditionally add New Features section if FEATURES is not empty
+          if [ -n "$FEATURES" ]; then
+            RELEASE_NOTES+="## New Features\n${FEATURES}\n\n"
           fi
 
-          # Format Bug Fixes, include only if not empty
-          BUG_FIXES=$(echo "$RELEASE_INFO" | jq -r '.release_notes.bug_fixes | select(. != null) | .[]' | sed 's/^/* /')
+          # Conditionally add Bug Fixes section if BUG_FIXES is not empty
           if [ -n "$BUG_FIXES" ]; then
-            FORMATTED_BUG_FIXES="## Bug Fixes:\n$BUG_FIXES"
-          else
-            FORMATTED_BUG_FIXES=""
+            RELEASE_NOTES+="## Bug Fixes\n${BUG_FIXES}\n\n"
           fi
 
-          # Combine release notes, ensuring newlines are handled properly
-          RELEASE_NOTES="${FORMATTED_NEW_FEATURES}\n\n${FORMATTED_BUG_FIXES}"
-          
-          # Use -e to interpret escape sequences correctly
-          echo -e "::set-output name=version::$VERSION"
-          echo -e "::set-output name=notes::$RELEASE_NOTES"
-          echo -e "::set-output name=pre_release::$PRE_RELEASE"
+          # Check if version contains a pre-release identifier
+          if [[ "$VERSION" == *"-alpha"* || "$VERSION" == *"-beta"* || "$VERSION" == *"-rc"* ]]; then
+            IS_PRERELEASE=true
+          else
+            IS_PRERELEASE=false
+          fi
+
+          # Export variables safely for multi-line content
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo -e "$RELEASE_NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_ENV
+
+      - name: Check if release already exists
+        id: check_release
+        run: |
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            echo "RELEASE_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "RELEASE_EXISTS=false" >> $GITHUB_ENV
+          fi
 
       - name: Create GitHub Release
+        if: env.RELEASE_EXISTS == 'false'
         uses: actions/create-release@v1
-        with:
-          tag_name: ${{ steps.release-info.outputs.version }}
-          release_name: "Release: ${{ steps.release-info.outputs.version }}"
-          body: ${{ steps.release-info.outputs.notes }}
-          draft: false
-          prerelease: ${{ steps.release-info.outputs.pre_release }}
         env:
-          GITHUB_TOKEN: ${{ secrets.workflow }}
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW }}  # GitHub PAT token
+        with:
+          tag_name: ${{ env.VERSION }}
+          release_name: "Release ${{ env.VERSION }}"
+          body: ${{ env.RELEASE_NOTES }}
+          draft: false
+          prerelease: ${{ env.IS_PRERELEASE }}  # Set to true if version is pre-release based on VERSION
