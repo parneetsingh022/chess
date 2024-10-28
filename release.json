@@ -1,9 +1,9 @@
-
 {
-  "version": "v0.1.0-beta.1.1",
-  "description": "",
+  "version": "v0.2.0-beta.1",
+  "description": "This release introduces a new settings page and improves version information visibility.",
   "features": [
-    "Version Info Display: The main menu now shows the current version information, improving transparency for users."
+    "Settings Page: Added a settings page with basic settings options for better user experience.",
+    "Improved Font: Updated the font to improve readability and visibility in main menu."
   ],
   "bug-fix": []
 }

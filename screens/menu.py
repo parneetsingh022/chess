@@ -14,13 +14,12 @@ class MenuPage:
         
         self.start_button = Button("Start")
         self.settings_button = Button("Settings")
-        self.settings_button.disable_button()  # Will implement in future
         self.quit_button = Button("Quit")
 
         self.button_padding = 20
         self.menu_buttons = [
             (self.start_button, lambda: screen_manager.set_screen("board_page")),
-            (self.settings_button, None),
+            (self.settings_button, lambda: screen_manager.set_screen("settings")),
             (self.quit_button, quit_button_action),
         ]
 
