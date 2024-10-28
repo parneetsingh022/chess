@@ -15,7 +15,7 @@ class SettingsPage:
         self.card_width = self.screen.get_width() - (self.card_padding * 2)
         
         # Initialize SettingsCard
-        self.settings_card = SettingsCard(self.card_width)  # Example dimensions
+        self.settings_card = SettingsCard("Board", self.card_width)  # Example dimensions
         self.settings_card.set_position(self.card_padding, 50)  # Example position
 
     def display(self, event: pygame.event.Event) -> None:
