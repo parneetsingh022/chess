@@ -1,5 +1,5 @@
 {
-  "version": "v0.2.0-beta.1",
+  "version": "v0.2.0-beta.1-inc",
   "description": "This release introduces a new settings page and improves version information visibility.",
   "features": [
     "Settings Page: Added a settings page with basic settings options for better user experience.",
