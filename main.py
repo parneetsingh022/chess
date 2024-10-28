@@ -46,19 +46,29 @@ screen_manager.set_screen(current_screen)
 # Create a Clock object to control the frame rate
 clock = pygame.time.Clock()
 
+mouse_button_scroll = 0
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        
-    
-    # Clear the screen
+
+
+
+        if event.type == pygame.MOUSEBUTTONDOWN and screen_manager.current_screen == settings_page:
+                if event.button == 4:  # Mouse wheel up
+                    settings_page.set_start_position(1)
+                elif event.button == 5:  # Mouse wheel down
+                    settings_page.set_start_position(-1)
+
+
     screen.fill(colors.BACKGROUND_COLOR)
-    
     screen_manager.display_current_screen(event)
+    # Clear the screen
+    
+    
     # Update the display
     pygame.display.update()
-    
     # Control the frame rate
     clock.tick(60)  # Limit to 60 frames per second

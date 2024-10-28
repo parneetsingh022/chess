@@ -14,6 +14,9 @@ class SettingsCard:
         self.font = fonts.SETTING_FONT_CARD_HEADING
         self.symbol_font = fonts.CHEVRON_RIGHT
 
+        # Track mouse state
+        self.mouse_down = False
+
     def set_position(self, x, y, center=False):
         if center:
             self.rect.center = (x, y)
@@ -49,3 +52,13 @@ class SettingsCard:
         
         # Blit the image onto the screen
         screen.blit(self.image, self.rect)
+
+    def on_click(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left mouse button down
+            if self.rect.collidepoint(event.pos):
+                self.mouse_down = True
+
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:  # Left mouse button up
+            if self.mouse_down and self.rect.collidepoint(event.pos):
+                print("hello")
+            self.mouse_down = False
