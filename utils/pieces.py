@@ -43,7 +43,7 @@ class Piece:
         rect = pygame.Rect(col * self.piece_width, row * self.piece_height, self.piece_width, self.piece_height)
         return self.image.subsurface(rect)
     
-    def display(self, x, y):
+    def display(self, x, y, board_top_bar_height: int):
         """
         Display the extracted piece on the screen at the specified coordinates and draw a rectangle around it.
 
@@ -63,7 +63,7 @@ class Piece:
 
 
         x = (x - 1) * self.square_size
-        y = (y - 1) * self.square_size
+        y = (y - 1) * self.square_size + board_top_bar_height
 
         piece = self._extract_piece()
 

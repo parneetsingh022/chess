@@ -23,7 +23,7 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
     return []
 
 class BoardPiecesManager:
-    def __init__(self, screen: pygame.Surface, square_size: int, player: str):
+    def __init__(self, screen: pygame.Surface, square_size: int, player: str, board_top_bar_height: int):
         self.screen = screen
         self.square_size = square_size
         self.player = player
@@ -41,6 +41,7 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
         self.turn = player
+        self.board_top_bar_height = board_top_bar_height
 
         self.white_king_moved = False
         self.black_king_moved = False
@@ -52,14 +53,14 @@ class BoardPiecesManager:
 
     def _draw_rectangle(self, x, y):
         x = (x - 1) * self.square_size
-        y = (y - 1) * self.square_size
+        y = (y - 1) * self.square_size + self.board_top_bar_height
 
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
 
     def _draw_circle(self, x, y):
         # Calculate the center of the square
         x_center = (x - 1) * self.square_size + self.square_size // 2
-        y_center = (y - 1) * self.square_size + self.square_size // 2
+        y_center = (y - 1) * self.square_size + self.square_size // 2 + self.board_top_bar_height
 
         # Create a higher resolution surface (4 times the original size)
         high_res_size = self.square_size * 4
@@ -94,7 +95,7 @@ class BoardPiecesManager:
 
     def display(self):
         for piece, x, y in self.pieces:
-            piece.display(x, y)
+            piece.display(x, y,self.board_top_bar_height)
         
         # Draw rectangle around the selected piece
         if self.selected_piece:

@@ -19,8 +19,10 @@ theme = ThemeReader()
 
 pygame.init()
 
+BOARD_TOP_BAR_HEIGHT = 50
+
 # Set up the screen with double buffering
-screen = pygame.display.set_mode((650, 650), pygame.DOUBLEBUF)
+screen = pygame.display.set_mode((650, 650 + BOARD_TOP_BAR_HEIGHT), pygame.DOUBLEBUF)
 pygame.display.set_caption("Chess")
 
 WHITE = (255, 255, 255)
@@ -33,7 +35,7 @@ screen_manager = screen_manager.ScreenManager(screen)
 
 # Create screens and add them to the ScreenManager
 menu_page = MenuPage(screen, screen_manager)
-board_page = BoardPage(screen, screen_manager)
+board_page = BoardPage(screen, screen_manager, BOARD_TOP_BAR_HEIGHT)
 settings_page = SettingsPage(screen, screen_manager)
 
 screen_manager.add_screen("menu", menu_page)
