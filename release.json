@@ -3,7 +3,8 @@
   "description": "This release introduces a new settings page and improves version information visibility.",
   "features": [
     "Settings Page: Added a settings page with basic settings options for better user experience.",
-    "Improved Font: Updated the font to improve readability and visibility in main menu."
+    "Improved Font: Updated the font to improve readability and visibility in main menu.",
+    "Visual Improvements: Chess pieces now have a more polished look and feel."
   ],
   "bug-fix": [
     "Turn Indicator Flickering: Resolved an issue causing the turn indicator to flicker during gameplay."

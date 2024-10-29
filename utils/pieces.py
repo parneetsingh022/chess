@@ -13,9 +13,8 @@ class PieceColor(Enum):
     BLACK = 0
     WHITE = 1
 
-
 class Piece:
-    def __init__(self, screen : pygame.Surface, square_size : int, player : str , piece_type: PieceType, piece_color: PieceColor):
+    def __init__(self, screen: pygame.Surface, square_size: int, player: str, piece_type: PieceType, piece_color: PieceColor):
         self.screen = screen
         self.square_size = square_size
         self.player = player
@@ -50,8 +49,6 @@ class Piece:
         Args:
             x (int): The x square from(1-8).
             y (int): The y square from(1-8).
-            row (int): The row of the piece in the grid.
-            col (int): The column of the piece in the grid.
 
         Returns:
             None
@@ -61,7 +58,6 @@ class Piece:
             x = 9 - x
             y = 9 - y
 
-
         x = (x - 1) * self.square_size
         y = (y - 1) * self.square_size + board_top_bar_height
 
@@ -70,8 +66,8 @@ class Piece:
         # Calculate the new size for the piece
         new_size = (self.square_size, self.square_size)
 
-        # Resize the piece
-        resized_piece = pygame.transform.scale(piece, new_size)
+        # Resize the piece using smoothscale for better quality
+        resized_piece = pygame.transform.smoothscale(piece, new_size)
 
         # Display the resized piece on the screen
         self.screen.blit(resized_piece, (x, y))
