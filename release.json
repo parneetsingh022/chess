@@ -4,6 +4,7 @@
   "features": [
     "Settings Page: Added a settings page with basic settings options for better user experience.",
     "Improved Font: Updated the font to improve readability and visibility in main menu.",
+    "Game Screen: Added an option to navigate back to the main menu.",
     "Visual Improvements: Chess pieces now have a more polished look and feel."
   ],
   "bug-fix": [
