@@ -18,8 +18,8 @@ class BoardPage:
         self.board_pieces_manager = BoardPiecesManager(screen, self.chess_board_manager._square_size, self.chess_board_manager.player, self.board_top_bar_height)
         
 
-        self.turn_indicator_height = 3
-        self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+        # self.turn_indicator_height = 50
+        # self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
 
         self.mouse_down = False
 
@@ -39,19 +39,19 @@ class BoardPage:
         self.chess_board_manager.draw_board(black_color, white_color)
         self.board_pieces_manager.display()
         
-        if self.chess_board_manager.player == "white":
-            if self.board_pieces_manager.turn == "white":
-                self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
-            else:
-                self.turn_indicator.set_position(0, self.board_top_bar_height)
-        else:  # self.chess_board_manager.player == "black"
-            if self.board_pieces_manager.turn == "black":
-                self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
-            else:
-                self.turn_indicator.set_position(0, self.board_top_bar_height)
+        # if self.chess_board_manager.player == "white":
+        #     if self.board_pieces_manager.turn == "white":
+        #         self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+        #     else:
+        #         self.turn_indicator.set_position(0, self.board_top_bar_height)
+        # else:  # self.chess_board_manager.player == "black"
+        #     if self.board_pieces_manager.turn == "black":
+        #         self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+        #     else:
+        #         self.turn_indicator.set_position(0, self.board_top_bar_height)
 
-        self.turn_indicator.display(self.screen)
-        pygame.display.update(self.turn_indicator.rect)
+        #self.turn_indicator.display(self.screen)
+        pygame.display.update()
 
 
         # Handle mouse events for interaction

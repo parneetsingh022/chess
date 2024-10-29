@@ -6,6 +6,7 @@ from .movements.knight import knight_moves
 from .movements.rook import rook_moves
 from .movements.king import king_moves
 from .movements.queen import queen_moves
+from components.turn_indicator import TurnIndicator
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
     if piece.piece_type == PieceType.PAWN:
@@ -51,6 +52,9 @@ class BoardPiecesManager:
         self.black_rook1_moved = False
         self.black_rook2_moved = False
 
+        self.turn_indicator_height = 5
+        self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+
     def _draw_rectangle(self, x, y):
         x = (x - 1) * self.square_size
         y = (y - 1) * self.square_size + self.board_top_bar_height
@@ -94,6 +98,20 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
+
+        if self.player == "white":
+            if self.turn == "white":
+                self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+            else:
+                self.turn_indicator.set_position(0, self.board_top_bar_height)
+        else:  # self.chess_board_manager.player == "black"
+            if self.turn == "black":
+                self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+            else:
+                self.turn_indicator.set_position(0, self.board_top_bar_height)
+        self.turn_indicator.display(self.screen)
+
+
         for piece, x, y in self.pieces:
             piece.display(x, y,self.board_top_bar_height)
         

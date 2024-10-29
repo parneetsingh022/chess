@@ -5,5 +5,7 @@
     "Settings Page: Added a settings page with basic settings options for better user experience.",
     "Improved Font: Updated the font to improve readability and visibility in main menu."
   ],
-  "bug-fix": []
+  "bug-fix": [
+    "Turn Indicator Flickering: Resolved an issue causing the turn indicator to flicker during gameplay."
+  ]
 }
