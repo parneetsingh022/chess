@@ -5,7 +5,7 @@ from components.settings.settings_card import SettingsCard, SettingsToggleCard
 from constants import fonts
 from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
-import time
+from utils.local_storage.storage import settings_file_manager
 
 class SettingsPage:
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager):
@@ -25,12 +25,13 @@ class SettingsPage:
         self.home_button = BackButton()
         self.home_button.set_position(10, 10)  # Position at the top-left corner
 
-        # Initialize layout
-        self._init_layout()
-
-
         # Flag to prevent multiple clicks
         self.navigation_in_progress = False
+
+
+
+        # Initialize layout
+        self._init_layout()
 
     def _reset_start_position(self) -> None:
         self.start_position = 20
@@ -42,7 +43,9 @@ class SettingsPage:
         cur_elements = layout_manager.get_current_layout()['sub_layout']
         for key, value in cur_elements.items():
             setting_options[key] = {
-                'type': value['type']
+                'type': value['type'],
+                'target_atrb': value['target_atrb'],
+                'value': settings_file_manager.get_setting(value['target_atrb'])
             }
 
 
@@ -52,6 +55,8 @@ class SettingsPage:
                 card = SettingsCard(key, self.card_width)
             elif options['type'] == LayoutType.LayoutToggle.value:
                 card = SettingsToggleCard(key, self.card_width)
+                card.set_toggle(options['value'])
+                card.target_atrb = options['target_atrb']
 
             if card is not None:
                 self.settings_cards.append([card, options['type']])

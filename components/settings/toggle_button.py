@@ -19,7 +19,6 @@ class ToggleButton:
         self.screen.blit(self.image, self.pos)
 
     def set_state(self, state):
-        print(state)
         self.state = state
         self.image = self.on_image if self.state else self.off_image
 

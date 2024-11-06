@@ -2,6 +2,7 @@ import pygame
 from constants import colors
 from constants import fonts
 from components.settings.toggle_button import ToggleButton  # Import the ToggleButton class
+from utils.local_storage.storage import settings_file_manager  # Import the SettingsFileManager class
 
 class SettingsCard:
     def __init__(self, text, width, height=50, clickable=True):
@@ -74,6 +75,10 @@ class SettingsToggleCard(SettingsCard):
         self.toggle_button = ToggleButton(self.image, width - toggle_button_size[0] - 10, (height - toggle_button_size[1]) // 2, size=toggle_button_size)
         self.clicked = False
         self.state = False
+        self.target_atrb = None
+
+    def set_toggle(self, state):
+        self.state = state
 
     def display(self, screen):
         # Fill the image with a transparent color
@@ -92,10 +97,13 @@ class SettingsToggleCard(SettingsCard):
         text_rect = text_surface.get_rect()
         text_rect.topleft = (10, (self.rect.height - text_rect.height) // 2)  # Padding from the left side
         
+
+
         # Blit the text onto the image
         self.image.blit(text_surface, text_rect)
         
         # Display the toggle button
+        self.toggle_button.set_state(self.state)
         self.toggle_button.display()
         
         # Blit the image onto the screen
@@ -110,3 +118,6 @@ class SettingsToggleCard(SettingsCard):
                 self.clicked = False
                 self.state = not self.state
                 self.toggle_button.set_state(self.state)
+
+                if self.target_atrb is not None:
+                    settings_file_manager.save_setting(self.target_atrb, self.state)

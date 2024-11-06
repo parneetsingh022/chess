@@ -6,21 +6,23 @@ class LayoutType(Enum):
     LayoutText = "text"
 
 class Layout:
-    def __init__(self, name, layout_type: LayoutType, parent=None):
+    def __init__(self, name, layout_type: LayoutType, parent=None, target_atrb=None):
         self.name = name
         self.layout_type = layout_type
         self.sub_layouts = {}
         self.parent = parent
+        self.target_atrb = target_atrb
 
-    def add_sub_layout(self, name, layout_type: LayoutType):
-        sub_layout = Layout(name, layout_type, parent=self)
+    def add_sub_layout(self, name, layout_type: LayoutType, target_atrb=None):
+        sub_layout = Layout(name, layout_type, parent=self, target_atrb=target_atrb)
         self.sub_layouts[name] = sub_layout
         return sub_layout
 
     def get_layout(self):
         layout = {
             'type': self.layout_type.value,
-            'sub_layout': {name: sub_layout.get_layout() for name, sub_layout in self.sub_layouts.items()}
+            'sub_layout': {name: sub_layout.get_layout() for name, sub_layout in self.sub_layouts.items()},
+            'target_atrb': self.target_atrb
         }
         return layout
 
@@ -35,7 +37,7 @@ class LayoutManager:
             raise ValueError(f"Sub-layout '{name}' does not exist.")
 
     def move_to_parent_layout(self):
-        if self.current_layout.parent is None: # Already at root layout
+        if self.current_layout.parent is None:  # Already at root layout
             return False
         
         if self.current_layout.parent is not None:
@@ -49,23 +51,13 @@ class LayoutManager:
         return self.current_layout.get_layout()
 
 # Example usage
-root_layout = Layout(None, LayoutType.LayoutCategory)
+root_layout = Layout('ROOT', LayoutType.LayoutCategory)
 
-display_settings = root_layout.add_sub_layout('Display Settings', LayoutType.LayoutCategory)
-display_settings.add_sub_layout('BRIGHTNESS', LayoutType.LayoutToggle)
-display_settings.add_sub_layout('RESOLUTION', LayoutType.LayoutToggle)
-display_settings.add_sub_layout('ORIENTATION', LayoutType.LayoutToggle)
+display_settings = root_layout.add_sub_layout('General', LayoutType.LayoutCategory)
+display_settings.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_atrb='movement_indicators')
+display_settings.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
 
 root_layout.add_sub_layout('Theme', LayoutType.LayoutCategory)
 root_layout.add_sub_layout('Version', LayoutType.LayoutToggle)
 
-
 layout_manager = LayoutManager(root_layout)
-
-# # Move to DISPLAY SETTINGS
-# layout_manager.move_to_sub_layout('DISPLAY SETTINGS')
-# print(layout_manager.get_current_layout())
-
-# # Move back to ROOT
-# layout_manager.move_to_parent_layout(root_layout)
-# print(layout_manager.get_current_layout())
