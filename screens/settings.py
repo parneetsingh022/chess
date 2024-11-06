@@ -1,11 +1,10 @@
 from constants import colors
 import pygame
 from utils.screen_manager import ScreenManager
-from components.settings.settings_card import SettingsCard
+from components.settings.settings_card import SettingsCard,SettingsToggleCard
 from constants import fonts
 from components.image_button import BackButton
-
-
+from components.settings.layout.layout import layout_manager
 class SettingsPage:
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager):
         self.screen = screen
@@ -16,16 +15,21 @@ class SettingsPage:
         self.card_width = self.screen.get_width() - (self.card_padding * 2)
         
         # Setting options
-        self.setting_options = {
-            "Display Settings": [],  # Screen Size, Board Rotation
-            "Theme": [],  # Theme color, movement dots
-            "Version": [],  # Version number
-        }
+        self.setting_options = {}
         
+        cur_elements = layout_manager.get_current_layout()['sub_layout']
+        for key, value in cur_elements.items():
+            self.setting_options[key] = {
+                'type': value['type']
+            }
+
         # Initialize SettingsCards
         self.settings_cards = []
-        for i, (title, options) in enumerate(self.setting_options.items()):
-            card = SettingsCard(title, self.card_width)
+        for key, options in self.setting_options.items():
+            if options['type'] == 'category':
+                card = SettingsCard(key, self.card_width)
+            elif options['type'] == 'toggle':
+                card = SettingsToggleCard(key, self.card_width)
             self.settings_cards.append(card)
 
         # Initialize font for the title
@@ -34,6 +38,10 @@ class SettingsPage:
         # Initialize Home button as a BackButton
         self.home_button = BackButton()
         self.home_button.set_position(10, 10)  # Position at the top-left corner
+
+        
+
+        
 
     def set_start_position(self, factor: int) -> None:
         factor *= 30

@@ -18,16 +18,8 @@ class ToggleButton:
     def display(self):
         self.screen.blit(self.image, self.pos)
 
-    def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(event.pos):
-                self.mouse_down = True
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if self.mouse_down and self.rect.collidepoint(event.pos):
-                self.toggle()
-            self.mouse_down = False
-
     def set_state(self, state):
+        print(state)
         self.state = state
         self.image = self.on_image if self.state else self.off_image
 
