@@ -54,15 +54,19 @@ class SettingsCard:
         # Blit the image onto the screen
         screen.blit(self.image, self.rect)
 
-    def on_click(self, event):
+    def on_click(self, event, layout_manager) -> bool:
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left mouse button down
             if self.rect.collidepoint(event.pos):
                 self.mouse_down = True
 
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:  # Left mouse button up
             if self.mouse_down and self.rect.collidepoint(event.pos):
-                print("hello")
+                layout_manager.move_to_sub_layout(self.text)
+                self.mouse_down = False
+                return True
             self.mouse_down = False
+
+        return False
 
 class SettingsToggleCard(SettingsCard):
     def __init__(self, text, width, height=50, clickable=True, toggle_button_size=(50, 50)):
