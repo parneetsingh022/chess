@@ -105,6 +105,8 @@ class BoardPiecesManager:
     def display(self):
         if settings_file_manager.get_setting("flip_player") and self.turn == "black" and not self.player == "black":
             self.flip_board()
+        elif not settings_file_manager.get_setting("flip_player") and self.player == "black":
+            self.flip_board()
 
 
         if settings_file_manager.get_setting("movement_indicators"):
