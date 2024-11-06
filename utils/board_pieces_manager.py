@@ -56,6 +56,10 @@ class BoardPiecesManager:
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
 
+
+        
+
+
     def _draw_rectangle(self, x, y):
         x = (x - 1) * self.square_size
         y = (y - 1) * self.square_size + self.board_top_bar_height
@@ -99,6 +103,9 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
+        if settings_file_manager.get_setting("flip_player") and self.turn == "black" and not self.player == "black":
+            self.flip_board()
+
 
         if settings_file_manager.get_setting("movement_indicators"):
             if self.player == "white":
@@ -258,9 +265,19 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
 
+        if settings_file_manager.get_setting("flip_player") == True:
+            print("DOING HERE")
+            self.flip_board()
+
     def _get_piece_index_at_pos(self, pos):
         """Helper function to get the index of the piece at the given position (1-based)."""
         for i, (_, x, y) in enumerate(self.pieces):
             if (x, y) == pos:
                 return i
         return None
+
+    def flip_board(self):
+        """Flip the board layout and pieces by 180 degrees."""
+        self.player = "black" if self.player == "white" else "white"
+        self.layout = [row[::-1] for row in self.layout[::-1]]
+        self.pieces = [(piece, 9 - x, 9 - y) for piece, x, y in self.pieces]

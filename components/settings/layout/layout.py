@@ -53,9 +53,10 @@ class LayoutManager:
 # Example usage
 root_layout = Layout('ROOT', LayoutType.LayoutCategory)
 
-display_settings = root_layout.add_sub_layout('General', LayoutType.LayoutCategory)
-display_settings.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_atrb='movement_indicators')
-display_settings.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
+general = root_layout.add_sub_layout('General', LayoutType.LayoutCategory)
+general.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_atrb='movement_indicators')
+general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
+general.add_sub_layout('Flip player', LayoutType.LayoutToggle, target_atrb='flip_player')
 
 root_layout.add_sub_layout('Theme', LayoutType.LayoutCategory)
 root_layout.add_sub_layout('Version', LayoutType.LayoutToggle)
