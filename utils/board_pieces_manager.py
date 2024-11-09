@@ -32,6 +32,12 @@ class BoardPiecesManager:
         self.screen = screen
         self.square_size = square_size
         self.player = player
+        self.board_top_bar_height = board_top_bar_height
+        self.turn_indicator_height = 5
+        self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+        self._reset()
+
+    def _reset(self):
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
             ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
@@ -47,7 +53,6 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
         self.turn = "white"
-        self.board_top_bar_height = board_top_bar_height
 
         self.white_king_moved = False
         self.black_king_moved = False
@@ -56,9 +61,6 @@ class BoardPiecesManager:
         self.white_rook2_moved = False
         self.black_rook1_moved = False
         self.black_rook2_moved = False
-
-        self.turn_indicator_height = 5
-        self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
 
 
     def _draw_rectangle(self, x, y):
