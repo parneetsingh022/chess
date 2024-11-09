@@ -1,15 +1,15 @@
+
 import pygame
 from typing import Tuple
 
 def draw_square(i, j, square_size, color, screen, board_top_bar_height):
     pygame.draw.rect(screen, color, pygame.Rect(i * square_size, j * square_size + board_top_bar_height, square_size, square_size))
 
-
 class ChessBoardManager:
     def __init__(self, screen: pygame.Surface, screen_width: int, board_top_bar_height :int, player: str = "white"):
         self.screen = screen
         self.screen_width = screen_width
-        self._square_size = screen_width // 8 + 0.5
+        self._square_size = screen_width // 8  # Ensure square size is an integer
         self.player = player
         self.board_top_bar_height = board_top_bar_height
 
@@ -36,4 +36,6 @@ class ChessBoardManager:
             board_x = 9 - board_x
             board_y = 9 - board_y
         return (board_x, board_y)
+
+        # return x,y
 
