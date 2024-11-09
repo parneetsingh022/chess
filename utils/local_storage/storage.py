@@ -4,7 +4,6 @@ import os
 default_settings = {
     "turn_indicator": True,
     "movement_indicators": True,
-    "flip_player": False,
 }
 
 class SettingsFileManager:
