@@ -7,6 +7,7 @@ from .movements.rook import rook_moves
 from .movements.king import king_moves
 from .movements.queen import queen_moves
 from components.turn_indicator import TurnIndicator
+from utils.local_storage.storage import settings_file_manager
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
     # Adjust positions based on player perspective
@@ -58,6 +59,7 @@ class BoardPiecesManager:
 
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+
 
     def _draw_rectangle(self, x, y):
         if self.player == "black":
@@ -112,17 +114,18 @@ class BoardPiecesManager:
 
     def display(self):
 
-        if self.player == "white":
-            if self.turn == "white":
-                self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
-            else:
-                self.turn_indicator.set_position(0, self.board_top_bar_height)
-        else:  # self.chess_board_manager.player == "black"
-            if self.turn == "black":
-                self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
-            else:
-                self.turn_indicator.set_position(0, self.board_top_bar_height)
-        self.turn_indicator.display(self.screen)
+        if settings_file_manager.get_setting("turn_indicator"):
+            if self.player == "white":
+                if self.turn == "white":
+                    self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+                else:
+                    self.turn_indicator.set_position(0, self.board_top_bar_height)
+            else:  # self.chess_board_manager.player == "black"
+                if self.turn == "black":
+                    self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+                else:
+                    self.turn_indicator.set_position(0, self.board_top_bar_height)
+            self.turn_indicator.display(self.screen)
 
 
         for piece, x, y in self.pieces:
@@ -133,8 +136,10 @@ class BoardPiecesManager:
             self._draw_rectangle(self.selected_piece[0], self.selected_piece[1])
         
         # Draw circles for all possible moves
-        for move in self.selected_possible_moves:
-            self._draw_circle(move[0], move[1])
+        
+        if settings_file_manager.get_setting("movement_indicators"):
+            for move in self.selected_possible_moves:
+                self._draw_circle(move[0], move[1])
         
         # Update the display once after all drawing operations
         pygame.display.flip()
