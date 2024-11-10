@@ -17,6 +17,7 @@ class SettingsPage:
         self.screen = screen
         self.screen_manager = screen_manager
         self.start_position = 20
+        self.end_position = 0
 
         self.card_padding = 50
         self.card_width = self.screen.get_width() - (self.card_padding * 2)
@@ -33,7 +34,8 @@ class SettingsPage:
         # Flag to prevent multiple clicks
         self.navigation_in_progress = False
 
-
+        # Attribute to store the bottom card's position
+        self.bottom_card_position = 0
 
         # Initialize layout
         self._init_layout()
@@ -53,7 +55,6 @@ class SettingsPage:
                 'value': settings_file_manager.get_setting(value['target_atrb'])
             }
 
-
         for key, options in setting_options.items():
             card = None
             if options['type'] == LayoutType.LayoutCategory.value:
@@ -68,9 +69,20 @@ class SettingsPage:
 
     def set_start_position(self, factor: int) -> None:
         factor *= 30
-        self.start_position += factor
-        if self.start_position > 20:
+        new_start_position = self.start_position + factor
+    
+        # Calculate the total height of all cards
+        total_cards_height = 80 + len(self.settings_cards) * 65
+    
+        # Prevent further upward scrolling if the bottom card's position is less than or equal to the screen height
+        if new_start_position > 20:
             self.start_position = 20
+        elif total_cards_height <= self.screen.get_height() and factor < 0:
+            return
+        elif total_cards_height > self.screen.get_height() and new_start_position < self.screen.get_height() - total_cards_height:
+            self.start_position = self.screen.get_height() - total_cards_height
+        else:
+            self.start_position = new_start_position
 
     def _back_btn_fnc(self) -> None:
         if self.navigation_in_progress:
@@ -84,7 +96,7 @@ class SettingsPage:
                 if game_state.board_settings_button_pressed:
                     self.screen_manager.set_screen("board_page")
                     game_state.board_settings_button_pressed = False
-                    time.sleep(0.1)
+                    pygame.time.set_timer(pygame.USEREVENT + 1, 100)  # Set timer for 100 milliseconds
                 else:
                     self.screen_manager.set_screen("menu")
             else:
@@ -113,6 +125,7 @@ class SettingsPage:
         self.home_button.on_click(event, self._back_btn_fnc)
 
         # Display the SettingsCards
+        temp_bottom = 0
         for i, [card, card_type] in enumerate(self.settings_cards):
             card.set_position(self.card_padding, self.start_position + 80 + i * 65)
             card.display(self.screen)
@@ -123,5 +136,11 @@ class SettingsPage:
                     self._init_layout()
             elif card_type == LayoutType.LayoutToggle.value:
                 card.on_click(event)
+
+            # Update the bottom card's position
+            temp_bottom = card.bottom_pos()
+        
+        self.bottom_card_position = temp_bottom
+
 
         pygame.display.update()

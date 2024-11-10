@@ -68,6 +68,9 @@ class SettingsCard:
             self.mouse_down = False
 
         return False
+    
+    def bottom_pos(self) -> int:
+        return self.rect.bottom
 
 class SettingsToggleCard(SettingsCard):
     def __init__(self, text, width, height=50, clickable=True, toggle_button_size=(50, 50)):
