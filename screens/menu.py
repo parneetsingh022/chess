@@ -46,9 +46,6 @@ class MenuPage:
             self.quit_button_item,
         ]
 
-        self.release_notes_file = "release.json"
-        self.version = read_version_from_file(self.release_notes_file)
-
         # Initialize font for version label
         self.font = pygame.font.Font(None, 25)  # You can specify a font file and size
 
@@ -100,11 +97,6 @@ class MenuPage:
                 button.get_button_height() + self.button_padding
             )
             button.on_click(event, action)
-
-        # Render and display the version label
-        version_text = self.font.render(f"Version: {self.version}", True, colors.FONT_COLOR_GREY)
-        version_rect = version_text.get_rect()
-        version_rect.bottomright = (self.screen.get_width() - 10, self.screen.get_height() - 10)
-        self.screen.blit(version_text, version_rect)
+    
 
         pygame.display.update()
