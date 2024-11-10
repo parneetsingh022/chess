@@ -6,6 +6,11 @@ from constants import fonts
 from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
 from utils.local_storage.storage import settings_file_manager
+from states.gamestate import game_state
+import time
+
+
+
 
 class SettingsPage:
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager):
@@ -76,7 +81,12 @@ class SettingsPage:
             move = layout_manager.move_to_parent_layout()
             self._reset_start_position()
             if not move:
-                self.screen_manager.set_screen("menu")
+                if game_state.board_settings_button_pressed:
+                    self.screen_manager.set_screen("board_page")
+                    game_state.board_settings_button_pressed = False
+                    time.sleep(0.1)
+                else:
+                    self.screen_manager.set_screen("menu")
             else:
                 self._init_layout()
         finally:

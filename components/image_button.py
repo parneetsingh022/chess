@@ -18,7 +18,17 @@ class ImageButton:
             if self.rect.collidepoint(event.pos):
                 if action:
                     action()
+    # returns the end position of the button/image
+    def end_pos(self) -> int:
+        return self.rect.right
+    
+    def start_pos(self) -> int:
+        return self.rect.left
 
 class BackButton(ImageButton):
     def __init__(self):
         super().__init__("assets/icons/back_button_icon.png", 30, 30)  # Specific image path and size
+
+class SettingsButton(ImageButton):
+    def __init__(self):
+        super().__init__("assets/icons/settings_button_icon.png", 30, 30)  # Specific image path and size

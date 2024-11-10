@@ -4,9 +4,28 @@ import pygame
 from utils.screen_manager import ScreenManager
 from utils.chess_board_manager import ChessBoardManager
 from utils.board_pieces_manager import BoardPiecesManager
-from components.turn_indicator import TurnIndicator
 
-from components.image_button import BackButton
+from components.image_button import ImageButton, BackButton, SettingsButton
+from enum import Enum
+from states.gamestate import game_state
+
+
+class TopBarButtonType(Enum):
+    LEFTBUTTON = 1
+    RIGHTBUTTON = 2
+
+class TopBarButtonItem:
+    def __init__(self, button : ImageButton, action, type : TopBarButtonType):
+        self.button = button()
+        self.action = action
+        self.type = type
+
+def settings_button_action(screen_manager: ScreenManager):
+    screen_manager.set_screen("settings")
+    game_state.board_settings_button_pressed = True
+
+def back_button_action(screen_manager: ScreenManager):
+    screen_manager.set_screen("menu")
 
 
 class BoardPage:
@@ -19,15 +38,40 @@ class BoardPage:
         
         self.mouse_down = False
 
-        self.home_button = BackButton()
-        self.home_button.set_position(10, 10)  # Position at the top-left corner
+        self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
+        self.settings_button = TopBarButtonItem(SettingsButton, lambda: settings_button_action(self.screen_manager), TopBarButtonType.RIGHTBUTTON)
 
+        self.top_bar_buttons = [
+            self.home_button,
+            self.settings_button
+        ]
+
+        left_buttons = [btn for btn in self.top_bar_buttons if btn.type == TopBarButtonType.LEFTBUTTON]
+        right_buttons = [btn for btn in self.top_bar_buttons if btn.type == TopBarButtonType.RIGHTBUTTON]
+
+        last_left_button_pos = 0
+        for btn in left_buttons:
+            btn.button.set_position(last_left_button_pos + 10, 10)
+            last_left_button_pos = btn.button.end_pos()
+
+        last_right_button_pos = self.screen.get_width()
+        for btn in right_buttons:
+            btn.button.set_position(last_right_button_pos - 40, 10)
+            last_right_button_pos = btn.button.start_pos()
     def display(self, event: pygame.event.Event) -> None:
+        print(game_state.board_settings_button_pressed)
         # Fill screen and draw all components
         self.screen.fill(colors.BACKGROUND_COLOR)
         
-        self.home_button.display(self.screen)
-        self.home_button.on_click(event, lambda: self.screen_manager.set_screen("menu"))
+        # self.home_button.display(self.screen)
+        # self.home_button.on_click(event, lambda: self.screen_manager.set_screen("menu"))
+
+        # self.settings_button.display(self.screen)
+        # self.settings_button.on_click(event, lambda: self.screen_manager.set_screen("settings"))
+
+        for btn in self.top_bar_buttons:
+            btn.button.display(self.screen)
+            btn.button.on_click(event, btn.action)
         
         black_color = (0, 0, 0)
         white_color = (255, 255, 255)
