@@ -8,6 +8,8 @@ from .movements.king import king_moves
 from .movements.queen import queen_moves
 from components.turn_indicator import TurnIndicator
 from utils.local_storage.storage import settings_file_manager
+from states.gamestate import game_state
+
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
     # Adjust positions based on player perspective
@@ -35,7 +37,7 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
-        self._reset()
+        #self._reset()
 
     def _reset(self):
         self.layout = [
@@ -115,6 +117,9 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
+        if game_state.start_new:
+            self._reset()
+            game_state.start_new = False
 
         if settings_file_manager.get_setting("turn_indicator"):
             if self.player == "white":
@@ -182,6 +187,7 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
+        game_state.in_game = True
         if not self.selected_piece:
             return
 
