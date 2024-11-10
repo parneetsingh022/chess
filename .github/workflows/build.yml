@@ -31,11 +31,21 @@ jobs:
       run: python build.py
 
     - name: Commit and push release.json
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git checkout -b update-release-json
         git add release.json
         git commit -m 'Generate release.json'
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        git push origin update-release-json
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: update-release-json
+        title: 'Update release.json'
+        body: 'This PR updates the release.json file.'
+        labels: 'automated pr'
