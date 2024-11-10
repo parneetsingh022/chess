@@ -124,3 +124,40 @@ class SettingsToggleCard(SettingsCard):
 
                 if self.target_atrb is not None:
                     settings_file_manager.save_setting(self.target_atrb, self.state)
+
+class SettingsTextCard(SettingsCard):
+    def __init__(self, text, right_text, width, height=50):
+        super().__init__(text, width, height, clickable=False)
+        self.right_text = right_text
+        self.right_text_font = fonts.SETTING_FONT_CARD_SUBTEXT
+
+    def display(self, screen):
+        # Fill the image with a transparent color
+        self.image.fill((0, 0, 0, 0))
+        
+        # Draw the rounded rectangle
+        pygame.draw.rect(
+            self.image,
+            self.color,
+            self.image.get_rect(),
+            border_radius=15  # Adjust the radius as needed
+        )
+        
+        # Render the main text
+        text_surface = self.font.render(self.text, True, colors.BLACK_COLOR)
+        text_rect = text_surface.get_rect()
+        text_rect.topleft = (10, (self.rect.height - text_rect.height) // 2)  # Padding from the left side
+        
+        # Blit the main text onto the image
+        self.image.blit(text_surface, text_rect)
+        
+        # Render the right-aligned text
+        right_text_surface = self.right_text_font.render(self.right_text, True, colors.GREY_COLOR)
+        right_text_rect = right_text_surface.get_rect()
+        right_text_rect.topright = (self.rect.width - 10, (self.rect.height - right_text_rect.height) // 2)  # Padding from the right side
+        
+        # Blit the right-aligned text onto the image
+        self.image.blit(right_text_surface, right_text_rect)
+        
+        # Blit the image onto the screen
+        screen.blit(self.image, self.rect)

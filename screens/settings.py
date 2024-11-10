@@ -1,7 +1,7 @@
 from constants import colors
 import pygame
 from utils.screen_manager import ScreenManager
-from components.settings.settings_card import SettingsCard, SettingsToggleCard
+from components.settings.settings_card import SettingsCard, SettingsToggleCard, SettingsTextCard
 from constants import fonts
 from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
@@ -100,11 +100,13 @@ class SettingsPage:
 
         cur_elements = layout_manager.get_current_layout()['sub_layout']
         for key, value in cur_elements.items():
+            val = value['target_atrb'] if LayoutType.LayoutText.value == value['type'] else settings_file_manager.get_setting(value['target_atrb'])
             setting_options[key] = {
                 'type': value['type'],
                 'target_atrb': value['target_atrb'],
-                'value': settings_file_manager.get_setting(value['target_atrb'])
+                'value': val
             }
+        
 
         for key, options in setting_options.items():
             card = None
@@ -114,6 +116,8 @@ class SettingsPage:
                 card = SettingsToggleCard(key, self.card_width)
                 card.set_toggle(options['value'])
                 card.target_atrb = options['target_atrb']
+            elif options['type'] == LayoutType.LayoutText.value:
+                card = SettingsTextCard(key, options['value'], self.card_width)
 
             if card is not None:
                 self.settings_cards.append([card, options['type']])
