@@ -1,15 +1,17 @@
+
 import pygame
 from typing import Tuple
 
-def draw_square(x: int, y: int, square_size, color: Tuple[int], screen: pygame.Surface) -> None:
-    pygame.draw.rect(screen, color, (x * square_size, y * square_size, square_size, square_size))
+def draw_square(i, j, square_size, color, screen, board_top_bar_height):
+    pygame.draw.rect(screen, color, pygame.Rect(i * square_size, j * square_size + board_top_bar_height, square_size, square_size))
 
 class ChessBoardManager:
-    def __init__(self, screen: pygame.Surface, screen_width: int, player: str = "white"):
+    def __init__(self, screen: pygame.Surface, screen_width: int, board_top_bar_height :int, player: str = "white"):
         self.screen = screen
         self.screen_width = screen_width
-        self._square_size = screen_width // 8 + 0.5
+        self._square_size = screen_width // 8  # Ensure square size is an integer
         self.player = player
+        self.board_top_bar_height = board_top_bar_height
 
     def draw_board(self, black_color: Tuple, white_color: Tuple) -> None:
         for i in range(0, 8):
@@ -20,16 +22,20 @@ class ChessBoardManager:
                     color = color1
                 else:
                     color = color2
-                    
-                draw_square(i, j, self._square_size, color, self.screen)
+
+                # Adjust the y-coordinate by adding board_top_bar_height
+                draw_square(i, j, self._square_size, color, self.screen, self.board_top_bar_height)
 
     def get_square_loc(self, x, y):
         """
         Convert screen coordinates to board coordinates.
         """
         board_x = x // self._square_size + 1
-        board_y = y // self._square_size + 1
+        board_y = (y - self.board_top_bar_height) // self._square_size + 1
         if self.player == "black":
             board_x = 9 - board_x
             board_y = 9 - board_y
         return (board_x, board_y)
+
+        # return x,y
+

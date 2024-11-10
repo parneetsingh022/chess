@@ -1,9 +1,0 @@
-
-{
-  "version": "v0.1.0-beta.1.1",
-  "description": "",
-  "features": [
-    "Version Info Display: The main menu now shows the current version information, improving transparency for users."
-  ],
-  "bug-fix": []
-}

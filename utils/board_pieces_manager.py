@@ -6,27 +6,40 @@ from .movements.knight import knight_moves
 from .movements.rook import rook_moves
 from .movements.king import king_moves
 from .movements.queen import queen_moves
+from components.turn_indicator import TurnIndicator
+from utils.local_storage.storage import settings_file_manager
+from states.gamestate import game_state
+
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
+    # Adjust positions based on player perspective
     if piece.piece_type == PieceType.PAWN:
-        return pawn_moves(board, color, x, y)
+        moves = pawn_moves(board, color, x, y)
     elif piece.piece_type == PieceType.BISHOP:
-        return bishop_moves(board, color, x, y)
+        moves = bishop_moves(board, color, x, y)
     elif piece.piece_type == PieceType.KNIGHT:
-        return knight_moves(board, color, x, y)
+        moves = knight_moves(board, color, x, y)
     elif piece.piece_type == PieceType.ROOK:
-        return rook_moves(board, color, x, y)
+        moves = rook_moves(board, color, x, y)
     elif piece.piece_type == PieceType.KING:
-        return king_moves(board, color, x, y, king_moved, rook1_moved, rook2_moved)
+        moves = king_moves(board, color, x, y, king_moved, rook1_moved, rook2_moved)
     elif piece.piece_type == PieceType.QUEEN:
-        return queen_moves(board, color, x, y)
-    return []
+        moves = queen_moves(board, color, x, y)
+    else:
+        moves = []
+    return moves
 
 class BoardPiecesManager:
-    def __init__(self, screen: pygame.Surface, square_size: int, player: str):
+    def __init__(self, screen: pygame.Surface, square_size: int, player: str, board_top_bar_height: int):
         self.screen = screen
         self.square_size = square_size
         self.player = player
+        self.board_top_bar_height = board_top_bar_height
+        self.turn_indicator_height = 5
+        self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+        self._reset()
+
+    def _reset(self):
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
             ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
@@ -37,10 +50,11 @@ class BoardPiecesManager:
             ["WP", "WP", "WP", "WP", "WP", "WP", "WP", "WP"],
             ["WR", "WN", "WB", "WQ", "WK", "WB", "WN", "WR"]
         ]
+
         self.pieces = self._initialize_pieces()
         self.selected_piece = None
         self.selected_possible_moves = []
-        self.turn = player
+        self.turn = "white"
 
         self.white_king_moved = False
         self.black_king_moved = False
@@ -50,16 +64,26 @@ class BoardPiecesManager:
         self.black_rook1_moved = False
         self.black_rook2_moved = False
 
+
     def _draw_rectangle(self, x, y):
+        if self.player == "black":
+            x = 9 - x
+            y = 9 - y
+
         x = (x - 1) * self.square_size
-        y = (y - 1) * self.square_size
+        y = (y - 1) * self.square_size + self.board_top_bar_height
+
+        
 
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
 
     def _draw_circle(self, x, y):
+        if self.player == "black":
+            x = 9 - x
+            y = 9 - y
         # Calculate the center of the square
         x_center = (x - 1) * self.square_size + self.square_size // 2
-        y_center = (y - 1) * self.square_size + self.square_size // 2
+        y_center = (y - 1) * self.square_size + self.square_size // 2 + self.board_top_bar_height
 
         # Create a higher resolution surface (4 times the original size)
         high_res_size = self.square_size * 4
@@ -93,16 +117,36 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
+        if game_state.start_new:
+            self._reset()
+            game_state.start_new = False
+
+        if settings_file_manager.get_setting("turn_indicator"):
+            if self.player == "white":
+                if self.turn == "white":
+                    self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+                else:
+                    self.turn_indicator.set_position(0, self.board_top_bar_height)
+            else:  # self.chess_board_manager.player == "black"
+                if self.turn == "black":
+                    self.turn_indicator.set_position(0, self.screen.get_height() - self.turn_indicator_height)
+                else:
+                    self.turn_indicator.set_position(0, self.board_top_bar_height)
+            self.turn_indicator.display(self.screen)
+
+
         for piece, x, y in self.pieces:
-            piece.display(x, y)
+            piece.display(x, y,self.board_top_bar_height)
         
         # Draw rectangle around the selected piece
         if self.selected_piece:
             self._draw_rectangle(self.selected_piece[0], self.selected_piece[1])
         
         # Draw circles for all possible moves
-        for move in self.selected_possible_moves:
-            self._draw_circle(move[0], move[1])
+        
+        if settings_file_manager.get_setting("movement_indicators"):
+            for move in self.selected_possible_moves:
+                self._draw_circle(move[0], move[1])
         
         # Update the display once after all drawing operations
         pygame.display.flip()
@@ -143,6 +187,7 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
+        game_state.in_game = True
         if not self.selected_piece:
             return
 
