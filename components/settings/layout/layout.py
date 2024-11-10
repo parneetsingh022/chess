@@ -60,7 +60,7 @@ general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_at
 
 
 
-root_layout.add_sub_layout('Theme', LayoutType.LayoutCategory)
+#root_layout.add_sub_layout('Theme', LayoutType.LayoutCategory)
 root_layout.add_sub_layout('Version', LayoutType.LayoutText, target_atrb=version)
 
 layout_manager = LayoutManager(root_layout)
