@@ -7,9 +7,57 @@ from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
 from utils.local_storage.storage import settings_file_manager
 from states.gamestate import game_state
-import time
 
 
+class ScrollBar:
+    def __init__(self, screen: pygame.Surface, height: int, settings_page: 'SettingsPage'):
+        self.screen = screen
+        self.height = height
+        self.default_width = 10
+        self.hover_width = 10
+        self.width = self.default_width
+        self.x = self.screen.get_width() - self.width - 10
+        self.y = 10
+        self.scroll_height = 100  # Height of the scroll handle
+        self.scroll_y = self.y
+        self.dragging = False
+        self.settings_page = settings_page
+
+    def set_position(self, y: int):
+        self.scroll_y = y
+
+    def display(self):
+        # Check if the mouse is over the scroll bar
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        if pygame.Rect(self.x, self.y, self.width, self.height).collidepoint(mouse_x, mouse_y):
+            self.width = self.hover_width
+        else:
+            self.width = self.default_width
+
+        self.x = self.screen.get_width() - self.width - 10
+
+        # Draw the scroll bar background
+        pygame.draw.rect(self.screen, colors.GREY_COLOR, (self.x, self.y, self.width, self.height))
+        
+        # Draw the scroll handle with rounded edges
+        handle_rect = pygame.Rect(self.x, self.scroll_y, self.width, self.scroll_height)
+        pygame.draw.rect(self.screen, colors.BLACK_COLOR, handle_rect)
+        pygame.draw.circle(self.screen, colors.BLACK_COLOR, (self.x + self.width // 2, self.scroll_y), self.width // 2)
+        pygame.draw.circle(self.screen, colors.BLACK_COLOR, (self.x + self.width // 2, self.scroll_y + self.scroll_height), self.width // 2)
+
+    def on_click(self, event: pygame.event.Event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if pygame.Rect(self.x, self.scroll_y, self.width, self.scroll_height).collidepoint(event.pos):
+                self.dragging = True
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.dragging = False
+        elif event.type == pygame.MOUSEMOTION and self.dragging and pygame.mouse.get_pressed()[0]:
+            self.scroll_y = max(self.y, min(self.y + self.height - self.scroll_height, event.pos[1]))
+            scroll_factor = self.get_scroll_factor()
+            self.settings_page.update_start_position(scroll_factor)
+
+    def get_scroll_factor(self):
+        return (self.scroll_y - self.y) / (self.height - self.scroll_height)
 
 
 class SettingsPage:
@@ -39,6 +87,9 @@ class SettingsPage:
 
         # Initialize layout
         self._init_layout()
+
+        # Initialize scroll bar
+        self.scroll_bar = ScrollBar(self.screen, self.screen.get_height() - 20, self)
 
     def _reset_start_position(self) -> None:
         self.start_position = 20
@@ -83,6 +134,14 @@ class SettingsPage:
             self.start_position = self.screen.get_height() - total_cards_height
         else:
             self.start_position = new_start_position
+
+        # Update scroll bar position
+        scroll_factor = (self.start_position - 20) / (self.screen.get_height() - total_cards_height)
+        self.scroll_bar.set_position(self.scroll_bar.y + scroll_factor * (self.scroll_bar.height - self.scroll_bar.scroll_height))
+
+    def update_start_position(self, scroll_factor: float) -> None:
+        total_cards_height = 80 + len(self.settings_cards) * 65
+        self.start_position = 20 + scroll_factor * (self.screen.get_height() - total_cards_height - 20)
 
     def _back_btn_fnc(self) -> None:
         if self.navigation_in_progress:
@@ -142,5 +201,12 @@ class SettingsPage:
         
         self.bottom_card_position = temp_bottom
 
+        # Calculate the total height of all cards
+        total_cards_height = 80 + len(self.settings_cards) * 65
+
+        # Display the scroll bar if there are items to scroll
+        if total_cards_height > self.screen.get_height():
+            self.scroll_bar.display()
+            self.scroll_bar.on_click(event)
 
         pygame.display.update()

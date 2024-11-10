@@ -58,9 +58,6 @@ general.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_at
 general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
 
 
-
-
-
 root_layout.add_sub_layout('Theme', LayoutType.LayoutCategory)
 root_layout.add_sub_layout('Version', LayoutType.LayoutToggle)
 
