@@ -7,7 +7,7 @@ from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
 from utils.local_storage.storage import settings_file_manager
 from states.gamestate import game_state
-
+import time
 
 class ScrollBar:
     def __init__(self, screen: pygame.Surface, height: int, settings_page: 'SettingsPage'):
@@ -155,7 +155,7 @@ class SettingsPage:
                 if game_state.board_settings_button_pressed:
                     self.screen_manager.set_screen("board_page")
                     game_state.board_settings_button_pressed = False
-                    pygame.time.set_timer(pygame.USEREVENT + 1, 100)  # Set timer for 100 milliseconds
+                    time.sleep(0.1)
                 else:
                     self.screen_manager.set_screen("menu")
             else:

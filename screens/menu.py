@@ -32,7 +32,7 @@ class MenuPage:
         self.quit_button = Button("Quit")
 
 
-        self.start_button_item = (self.start_button, lambda: start_new(screen_manager))
+        self.start_button_item = (self.start_button, lambda: resume_game(screen_manager))
         self.resume_button_item = (self.resume_button, lambda: resume_game(self.screen_manager))
         self.start_new_game_button_item = (self.start_new_game, lambda: start_new(self.screen_manager))
         self.settings_button_item = (self.settings_button, lambda: screen_manager.set_screen("settings"))

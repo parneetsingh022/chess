@@ -37,7 +37,7 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
-        #self._reset()
+        self._reset()
 
     def _reset(self):
         self.layout = [
