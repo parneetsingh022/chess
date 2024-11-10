@@ -12,7 +12,7 @@ build_notes = {
         "Resume Option: Added an option to resume the game or start new game from the main menu."
     ],
     "bug-fix": [
-        "Turn Indicator Flickering: Resolved an issue causing the turn indicator to flicker during gameplay."
+        "Turn Indicator Flickering: Resolved an issue causing the turn indicator to flicker during gameplay.",
     ]
 }
 
