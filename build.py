@@ -5,11 +5,12 @@ build_notes = {
     "version": version,
     "description": "",
     "features": [
-        
+        "Improved Icons": "Settigns icon now appear in black and improved quality of toggle buttons in settings.",
     ],
     "bug-fix": [
         "Menu button glitch: Fixed an issue where the \"Resume\" and \"Start New Game\" buttons appeared after selecting and deselecting a piece without making a move.",
-        "Button position flicker: Fixed an issue where the \"Resume\" and \"New Game\" buttons briefly appeared in the top-left corner before moving to their correct positions."
+        "Button position flicker: Fixed an issue where the \"Resume\" and \"New Game\" buttons briefly appeared in the top-left corner before moving to their correct positions.",
+        
     ]
 }
 
