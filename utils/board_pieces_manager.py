@@ -187,7 +187,6 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
-        game_state.in_game = True
         if not self.selected_piece:
             return
 
@@ -216,6 +215,7 @@ class BoardPiecesManager:
             
             return
 
+        game_state.in_game = True
         captured_piece_index = None  # Track index of captured piece for removal
 
         for i, (piece, x, y) in enumerate(self.pieces):
