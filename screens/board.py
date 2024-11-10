@@ -59,7 +59,6 @@ class BoardPage:
             btn.button.set_position(last_right_button_pos - 40, 10)
             last_right_button_pos = btn.button.start_pos()
     def display(self, event: pygame.event.Event) -> None:
-        print(game_state.board_settings_button_pressed)
         # Fill screen and draw all components
         self.screen.fill(colors.BACKGROUND_COLOR)
         
