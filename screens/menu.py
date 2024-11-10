@@ -12,6 +12,7 @@ def quit_button_action():
 
 def start_new(screen_manager: ScreenManager):
     game_state.start_new = True
+    game_state.in_game = False
     screen_manager.set_screen("board_page")
 
 
@@ -67,9 +68,13 @@ class MenuPage:
             
             
             self.is_resume_added = True
-            
 
-        print(game_state.in_game, self.is_resume_added)
+        elif not game_state.in_game and self.is_resume_added:
+            self.menu_buttons.pop(0)  # Remove "Resume" button
+            self.menu_buttons.pop(0)  # Remove "New Game" button
+            self.menu_buttons.insert(0, self.start_button_item)
+            self.is_resume_added = False
+            
 
         # Calculate the total height of the menu
         total_menu_height = 0
