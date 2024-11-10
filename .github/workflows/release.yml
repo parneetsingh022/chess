@@ -1,10 +1,9 @@
 name: Create Release from release.json
 
 on:
-  workflow_run:
-    workflows: ["Build Release"]
-    types:
-      - completed
+  push:
+    branches:
+      - main  # Trigger on any push to the main branch
 
 jobs:
   create_release:
