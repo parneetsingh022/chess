@@ -85,17 +85,13 @@ class MenuPage:
 
         # Display the menu buttons on the screen
         del_y = 0
+        for button, _ in self.menu_buttons:
+            button.set_position(self.screen.get_width() // 2, start_height + del_y, center=True)
+            del_y += button.get_button_height() + self.button_padding
+
+        # Display the menu buttons on the screen
         for button, action in self.menu_buttons:
             button.display(self.screen)
-            button.set_position(
-                self.screen.get_width() // 2, 
-                start_height + del_y, 
-                center=True
-            )
-
-            del_y += (
-                button.get_button_height() + self.button_padding
-            )
             button.on_click(event, action)
     
 

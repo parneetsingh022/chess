@@ -1,5 +1,6 @@
 from enum import Enum
 import pygame
+from utils.resource_path import resource_path
 
 class PieceType(Enum):
     PAWN = 0
@@ -23,7 +24,7 @@ class Piece:
 
         self.piece_width = 128  # Assuming each piece is 128x128 pixels
         self.piece_height = 128
-        self.image = pygame.image.load("assets/chess_pieces_edited.png").convert_alpha()
+        self.image = pygame.image.load(resource_path("assets/chess_pieces_edited.png")).convert_alpha()
 
     def _extract_piece(self):
         """

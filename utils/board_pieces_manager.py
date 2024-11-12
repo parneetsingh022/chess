@@ -9,6 +9,7 @@ from .movements.queen import queen_moves
 from components.turn_indicator import TurnIndicator
 from utils.local_storage.storage import settings_file_manager
 from states.gamestate import game_state
+from components.popup import Popup
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
@@ -29,6 +30,7 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         moves = []
     return moves
 
+
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, board_top_bar_height: int):
         self.screen = screen
@@ -37,9 +39,26 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
-        self._reset()
+        self.reset_popup = Popup(screen, "Are you sure you want to reset the game?", button_type="yesno", callbacks={"yes": self.reset_popup_yes, "no": self.reset_popup_no})
+        self.reset()
 
-    def _reset(self):
+        self.event = None
+
+    def add_event(self, event):
+        self.event = event  
+
+    def reset_popup_yes(self):
+        game_state.in_game = False
+        self.reset()
+
+    def reset_popup_no(self):
+        pass
+
+    def reset(self, show_p=False):
+        if show_p: 
+            self.reset_popup.show()
+
+            return
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
             ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
@@ -64,7 +83,6 @@ class BoardPiecesManager:
         self.black_rook1_moved = False
         self.black_rook2_moved = False
 
-
     def _draw_rectangle(self, x, y):
         if self.player == "black":
             x = 9 - x
@@ -72,8 +90,6 @@ class BoardPiecesManager:
 
         x = (x - 1) * self.square_size
         y = (y - 1) * self.square_size + self.board_top_bar_height
-
-        
 
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
 
@@ -117,8 +133,9 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
+
         if game_state.start_new:
-            self._reset()
+            self.reset()
             game_state.start_new = False
 
         if settings_file_manager.get_setting("turn_indicator"):
@@ -134,24 +151,33 @@ class BoardPiecesManager:
                     self.turn_indicator.set_position(0, self.board_top_bar_height)
             self.turn_indicator.display(self.screen)
 
-
         for piece, x, y in self.pieces:
-            piece.display(x, y,self.board_top_bar_height)
+            piece.display(x, y, self.board_top_bar_height)
         
         # Draw rectangle around the selected piece
         if self.selected_piece:
             self._draw_rectangle(self.selected_piece[0], self.selected_piece[1])
         
         # Draw circles for all possible moves
-        
         if settings_file_manager.get_setting("movement_indicators"):
             for move in self.selected_possible_moves:
                 self._draw_circle(move[0], move[1])
         
+        self.reset_popup.draw()
         # Update the display once after all drawing operations
         pygame.display.flip()
 
+        # Handle the event
+        if self.event:
+            if self.reset_popup.handle_event(self.event):
+                # If the popup handled the event, skip further processing
+                return
+
     def select_piece(self, pos):
+        if game_state.pop_up_on: 
+            self.selected_piece = None
+            return
+
         if pos is None:
             self.selected_piece = None
             self.selected_possible_moves = []
@@ -187,7 +213,7 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
-        game_state.in_game = True
+        if game_state.pop_up_on: return
         if not self.selected_piece:
             return
 
@@ -216,6 +242,7 @@ class BoardPiecesManager:
             
             return
 
+        game_state.in_game = True
         captured_piece_index = None  # Track index of captured piece for removal
 
         for i, (piece, x, y) in enumerate(self.pieces):

@@ -1,7 +1,9 @@
 import pygame
+from utils.resource_path import resource_path
+
 pygame.font.init()
 
-_default_font_file = "assets/fonts/OpenSans.ttf"
+_default_font_file = resource_path('assets/fonts/OpenSans.ttf')
 
 
 DEFAULT_FONT = pygame.font.Font(_default_font_file, 26)

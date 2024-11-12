@@ -3,16 +3,14 @@ from constants.version import version
 
 build_notes = {
     "version": version,
-    "description": "This release introduces a new settings page and improves version information visibility.",
+    "description": "",
     "features": [
-        "Settings Page: Added a settings page with basic settings options for better user experience.",
-        "Improved Font: Updated the font to improve readability and visibility in main menu.",
-        "Game Screen Update: Implemented a top navigation bar featuring a back button and a settings page access button.",
-        "Visual Improvements: Chess pieces now have a more polished look and feel.",
-        "Resume Option: Added an option to resume the game or start new game from the main menu."
+        "Improved Icons: Settings icon now appear in black and improved quality of toggle buttons in settings.",
     ],
     "bug-fix": [
-        "Turn Indicator Flickering: Resolved an issue causing the turn indicator to flicker during gameplay.",
+        "Menu button glitch: Fixed an issue where the \"Resume\" and \"Start New Game\" buttons appeared after selecting and deselecting a piece without making a move.",
+        "Button position flicker: Fixed an issue where the \"Resume\" and \"New Game\" buttons briefly appeared in the top-left corner before moving to their correct positions.",
+        
     ]
 }
 
