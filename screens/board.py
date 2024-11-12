@@ -27,11 +27,8 @@ def settings_button_action(screen_manager: ScreenManager):
 def back_button_action(screen_manager: ScreenManager):
     screen_manager.set_screen("menu")
 
-import pygame
-
-
-
 class BoardPage:
+
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager, board_top_bar_height: int):
         self.screen = screen
         self.board_top_bar_height = board_top_bar_height
@@ -41,15 +38,15 @@ class BoardPage:
         
         self.mouse_down = False
 
+
         self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
-        self.restart_button = TopBarButtonItem(RestartButton, lambda: self.board_pieces_manager.reset(show_popup=True), TopBarButtonType.LEFTBUTTON)
+        self.restart_button = TopBarButtonItem(RestartButton, lambda: self.board_pieces_manager.reset(show_p=True), TopBarButtonType.LEFTBUTTON)
         self.settings_button = TopBarButtonItem(SettingsButton, lambda: settings_button_action(self.screen_manager), TopBarButtonType.RIGHTBUTTON)
 
         self.top_bar_buttons = [
             self.home_button,
             self.restart_button,
             self.settings_button,
-
         ]
 
         left_buttons = [btn for btn in self.top_bar_buttons if btn.type == TopBarButtonType.LEFTBUTTON]
@@ -64,20 +61,19 @@ class BoardPage:
         for btn in right_buttons:
             btn.button.set_position(last_right_button_pos - 40, 10)
             last_right_button_pos = btn.button.start_pos()
+
     def display(self, event: pygame.event.Event) -> None:
+
+        self.board_pieces_manager.add_event(event)
         # Fill screen and draw all components
         self.screen.fill(colors.BACKGROUND_COLOR)
         
-        # self.home_button.display(self.screen)
-        # self.home_button.on_click(event, lambda: self.screen_manager.set_screen("menu"))
-
-        # self.settings_button.display(self.screen)
-        # self.settings_button.on_click(event, lambda: self.screen_manager.set_screen("settings"))
-
         for btn in self.top_bar_buttons:
             btn.button.display(self.screen)
-            btn.button.on_click(event, btn.action)
-        
+            if not game_state.pop_up_on:
+                btn.button.on_click(event, btn.action)
+            else:
+                btn.button.on_click(event, lambda: None)
         black_color = (0, 0, 0)
         white_color = (255, 255, 255)
 
@@ -85,7 +81,6 @@ class BoardPage:
         self.board_pieces_manager.display()
 
         pygame.display.update()
-
 
         # Handle mouse events for interaction
         if event:
