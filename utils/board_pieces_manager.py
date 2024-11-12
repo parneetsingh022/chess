@@ -29,6 +29,49 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         moves = []
     return moves
 
+
+class Popup:
+    def __init__(self, screen: pygame.Surface, message: str, buttons: list):
+        self.screen = screen
+        self.message = message
+        self.buttons = buttons
+        self.font = pygame.font.Font(None, 36)  # You can specify a font file and size
+        self.popup_rect = pygame.Rect(50, 100, 300, 150)
+        self.button_rects = []
+
+    def display(self):
+        WHITE = (255, 255, 255)
+        BLACK = (0, 0, 0)
+        GRAY = (169, 169, 169)
+        BLUE = (0, 0, 255)
+        RED = (255, 0, 0)
+
+        # Draw the popup background
+        pygame.draw.rect(self.screen, GRAY, self.popup_rect)
+        pygame.draw.rect(self.screen, BLACK, self.popup_rect, 2)  # Border
+
+        # Display the message
+        msg_text = self.font.render(self.message, True, BLACK)
+        self.screen.blit(msg_text, (self.popup_rect.x + 10, self.popup_rect.y + 10))
+
+        # Display buttons
+        button_width = 120
+        button_height = 40
+        self.button_rects = []
+        for i, button in enumerate(self.buttons):
+            button_rect = pygame.Rect(self.popup_rect.x + i * (button_width + 10) + 10, self.popup_rect.y + 80, button_width, button_height)
+            pygame.draw.rect(self.screen, BLUE if button != "OK" else RED, button_rect)
+            button_text = self.font.render(button, True, WHITE)
+            self.screen.blit(button_text, button_rect.topleft)
+            self.button_rects.append((button, button_rect))
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left mouse button
+            for button, rect in self.button_rects:
+                if rect.collidepoint(event.pos):
+                    return button
+        return None
+
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, board_top_bar_height: int):
         self.screen = screen
@@ -37,9 +80,10 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
-        self._reset()
+        self.reset()
 
-    def _reset(self):
+    def reset(self, show_popup=False):
+        self.popup = Popup(self.screen, "Are you sure you want to reset?", ["Yes", "No"])
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
             ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
@@ -118,7 +162,7 @@ class BoardPiecesManager:
 
     def display(self):
         if game_state.start_new:
-            self._reset()
+            self.reset()
             game_state.start_new = False
 
         if settings_file_manager.get_setting("turn_indicator"):

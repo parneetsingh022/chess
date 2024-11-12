@@ -5,7 +5,7 @@ from utils.screen_manager import ScreenManager
 from utils.chess_board_manager import ChessBoardManager
 from utils.board_pieces_manager import BoardPiecesManager
 
-from components.image_button import ImageButton, BackButton, SettingsButton
+from components.image_button import ImageButton, BackButton, SettingsButton, RestartButton
 from enum import Enum
 from states.gamestate import game_state
 
@@ -27,6 +27,9 @@ def settings_button_action(screen_manager: ScreenManager):
 def back_button_action(screen_manager: ScreenManager):
     screen_manager.set_screen("menu")
 
+import pygame
+
+
 
 class BoardPage:
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager, board_top_bar_height: int):
@@ -39,11 +42,14 @@ class BoardPage:
         self.mouse_down = False
 
         self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
+        self.restart_button = TopBarButtonItem(RestartButton, lambda: self.board_pieces_manager.reset(show_popup=True), TopBarButtonType.LEFTBUTTON)
         self.settings_button = TopBarButtonItem(SettingsButton, lambda: settings_button_action(self.screen_manager), TopBarButtonType.RIGHTBUTTON)
 
         self.top_bar_buttons = [
             self.home_button,
-            self.settings_button
+            self.restart_button,
+            self.settings_button,
+
         ]
 
         left_buttons = [btn for btn in self.top_bar_buttons if btn.type == TopBarButtonType.LEFTBUTTON]

@@ -1,9 +1,10 @@
 import os
 import ast
+from utils.resource_path import resource_path
 
 class ThemeReader:
     def __init__(self, theme_folder="themes",  theme_file="default.th"):
-        theme_file_path = os.path.join(theme_folder, theme_file)
+        theme_file_path = resource_path(os.path.join(theme_folder, theme_file))
         with open(theme_file_path, "r") as file:
             self.theme_data_raw = file.read()
         

@@ -1,4 +1,5 @@
 import pygame
+from utils.resource_path import resource_path
 
 class ImageButton:
     def __init__(self, image_path: str, width: int, height: int):
@@ -27,8 +28,12 @@ class ImageButton:
 
 class BackButton(ImageButton):
     def __init__(self):
-        super().__init__("assets/icons/back_button_icon.png", 30, 30)  # Specific image path and size
+        super().__init__(resource_path("assets/icons/back_button_icon.png"), 30, 30)
 
 class SettingsButton(ImageButton):
     def __init__(self):
-        super().__init__("assets/icons/settings_button_icon.png", 30, 30)  # Specific image path and size
+        super().__init__(resource_path("assets/icons/settings_button_icon.png"), 30, 30)
+
+class RestartButton(ImageButton):
+    def __init__(self):
+        super().__init__(resource_path("assets/icons/restart_button_icon.png"), 30, 30)
