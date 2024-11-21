@@ -3,7 +3,8 @@
     "description": "",
     "features": [
         "Improved Icons: Settings icon now appear in black and improved quality of toggle buttons in settings.",
-        "Reset option: Added option to reset the game, within the board page."
+        "Reset option: Added option to reset the game, within the board page.",
+        "Check: Implemented a feature in the game that restricts all moves except those that can prevent a check."
     ],
     "bug-fix": [
         "Menu button glitch: Fixed an issue where the \"Resume\" and \"Start New Game\" buttons appeared after selecting and deselecting a piece without making a move.",

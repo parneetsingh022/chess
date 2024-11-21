@@ -4,7 +4,7 @@ from .movements.pawn import pawn_moves
 from .movements.bishop import bishop_moves
 from .movements.knight import knight_moves
 from .movements.rook import rook_moves
-from .movements.king import king_moves
+from .movements.king import king_moves, is_check
 from .movements.queen import queen_moves
 from components.turn_indicator import TurnIndicator
 from utils.local_storage.storage import settings_file_manager
@@ -28,8 +28,18 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         moves = queen_moves(board, color, x, y)
     else:
         moves = []
-    return moves
 
+    # If the king is under check, filter moves to only include those that prevent check
+    valid_moves = []
+    for move in moves:
+        new_board = [row[:] for row in board]  # Create a copy of the board
+        new_board[y-1][x-1] = ""  # Remove the piece from the original position
+        new_board[move[1]-1][move[0]-1] = f"{color[0]}{piece.piece_type.name[0]}"  # Place the piece in the new position
+        if not is_check(new_board, "white" if color == "black" else "black"):
+            valid_moves.append(move)
+    moves = valid_moves
+
+    return moves
 
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, board_top_bar_height: int):
@@ -43,6 +53,8 @@ class BoardPiecesManager:
         self.reset()
 
         self.event = None
+
+        self.is_under_check = False
 
     def add_event(self, event):
         self.event = event  
@@ -296,7 +308,7 @@ class BoardPiecesManager:
                             self.black_rook1_moved = True
                         elif from_x == 7 and from_y == 0:
                             self.black_rook2_moved = True
-
+                self.is_under_check = is_check(self.layout, self.turn)
                 self.turn = "white" if self.turn == "black" else "black"
 
                 break
