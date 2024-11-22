@@ -5,12 +5,10 @@ build_notes = {
     "version": version,
     "description": "",
     "features": [
-        "Improved Icons: Settings icon now appear in black and improved quality of toggle buttons in settings.",
+        "Checkmate: The game now detects checks and checkmates.",
     ],
     "bug-fix": [
-        "Menu button glitch: Fixed an issue where the \"Resume\" and \"Start New Game\" buttons appeared after selecting and deselecting a piece without making a move.",
-        "Button position flicker: Fixed an issue where the \"Resume\" and \"New Game\" buttons briefly appeared in the top-left corner before moving to their correct positions.",
-        
+       
     ]
 }
 

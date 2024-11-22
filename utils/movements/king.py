@@ -108,7 +108,5 @@ def is_check(board, color):
             elif piece_type == 'k':
                 opponents_possible_moves.extend(king_moves(board, opponent_color, x, y, False, False, False))
         
-    
-    # print(opponents_possible_moves, king_pos)
     return king_pos in opponents_possible_moves
     
