@@ -81,8 +81,8 @@ def is_check(board, color):
     for y, row in enumerate(board):
         for x, piece in enumerate(row):
             if piece.lower() == f"{color[0]}k":
+                
                 king_pos = (x + 1, y + 1)
-
 
     opponent_color = 'white' if color == 'black' else 'black'
     opponents_possible_moves = []

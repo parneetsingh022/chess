@@ -34,9 +34,14 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
     for move in moves:
         new_board = [row[:] for row in board]  # Create a copy of the board
         new_board[y-1][x-1] = ""  # Remove the piece from the original position
-        new_board[move[1]-1][move[0]-1] = f"{color[0]}{piece.piece_type.name[0]}"  # Place the piece in the new position
+        piece_code = f"{color[0]}{piece.piece_type.name[0]}"
+        if piece.piece_type == PieceType.KNIGHT:
+            piece_code = f"{color[0]}N"
+        new_board[move[1]-1][move[0]-1] = piece_code.upper()  # Place the piece in the new position
         if not is_check(new_board, "white" if color == "black" else "black"):
+            
             valid_moves.append(move)
+            
     moves = valid_moves
 
     return moves
@@ -55,6 +60,7 @@ class BoardPiecesManager:
         self.event = None
 
         self.is_under_check = False
+        self.is_check_mate = False
 
     def add_event(self, event):
         self.event = event  
@@ -104,6 +110,15 @@ class BoardPiecesManager:
         y = (y - 1) * self.square_size + self.board_top_bar_height
 
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
+
+    def _no_move_left(self):
+        if not self.is_under_check: return
+        for piece in self.pieces:
+            if piece[0].piece_color.name.lower() == self.turn:
+                moves = get_possible_positions(piece[0], piece[0].piece_color.name.lower(), self.layout, piece[1], piece[2], False, False, False)
+                if moves: return False
+
+        return True
 
     def _draw_circle(self, x, y):
         if self.player == "black":
@@ -225,6 +240,9 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
+        if self._no_move_left():
+            print("Checkmate")
+            return
         if game_state.pop_up_on: return
         if not self.selected_piece:
             return
