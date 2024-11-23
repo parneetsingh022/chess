@@ -7,6 +7,7 @@ class ImageButton:
         self.image = pygame.transform.smoothscale(self.image, (width, height))
         self.rect = self.image.get_rect()
         self.on_click_action = None
+        self.disabled = False
 
     def set_position(self, x: int, y: int):
         self.rect.topleft = (x, y)
@@ -25,6 +26,12 @@ class ImageButton:
     
     def start_pos(self) -> int:
         return self.rect.left
+    
+    def disable(self):
+        self.disabled = True
+
+    def enable(self):
+        self.disabled = False
 
 class BackButton(ImageButton):
     def __init__(self):
@@ -37,3 +44,13 @@ class SettingsButton(ImageButton):
 class RestartButton(ImageButton):
     def __init__(self):
         super().__init__(resource_path("assets/icons/restart_button_icon.png"), 30, 30)
+
+    def disable(self):
+        self.image = pygame.image.load(resource_path("assets/icons/restart_button_icon_disabled.png")).convert_alpha()
+        self.image = pygame.transform.smoothscale(self.image, (30, 30))
+        self.disabled = True
+
+    def enable(self):
+        self.image = pygame.image.load(resource_path("assets/icons/restart_button_icon.png")).convert_alpha()
+        self.image = pygame.transform.smoothscale(self.image, (30, 30))
+        self.disabled = False

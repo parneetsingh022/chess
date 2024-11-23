@@ -27,6 +27,11 @@ def settings_button_action(screen_manager: ScreenManager):
 def back_button_action(screen_manager: ScreenManager):
     screen_manager.set_screen("menu")
 
+def restart_button_action(board_pieces_manager: BoardPiecesManager):
+    if not game_state.in_game: return
+
+    board_pieces_manager.reset(show_p=True)
+
 class BoardPage:
 
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager, board_top_bar_height: int):
@@ -40,7 +45,7 @@ class BoardPage:
 
 
         self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
-        self.restart_button = TopBarButtonItem(RestartButton, lambda: self.board_pieces_manager.reset(show_p=True), TopBarButtonType.LEFTBUTTON)
+        self.restart_button = TopBarButtonItem(RestartButton, lambda: restart_button_action(self.board_pieces_manager), TopBarButtonType.LEFTBUTTON)
         self.settings_button = TopBarButtonItem(SettingsButton, lambda: settings_button_action(self.screen_manager), TopBarButtonType.RIGHTBUTTON)
 
         self.top_bar_buttons = [
@@ -73,6 +78,11 @@ class BoardPage:
         self.screen.fill(colors.BACKGROUND_COLOR)
         
         for btn in self.top_bar_buttons:
+            if btn == self.restart_button and not game_state.in_game:
+                btn.button.disable()
+            elif btn == self.restart_button and game_state.in_game and btn.button.disabled == True:
+                btn.button.enable()
+
             btn.button.display(self.screen)
             if not game_state.pop_up_on:
                 btn.button.on_click(event, btn.action)
