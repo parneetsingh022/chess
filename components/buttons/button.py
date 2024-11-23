@@ -73,4 +73,11 @@ class Button:
 
     def get_button_height(self):
         return self.button_rect.height
+    
+    def get_start_position(self):
+        return self.button_rect.topleft
+
+    def get_end_position(self):
+        return self.button_rect.bottomright    
+    
         

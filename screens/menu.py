@@ -2,8 +2,9 @@ from constants import colors
 import pygame
 from components.buttons.button import Button
 from utils.screen_manager import ScreenManager
-from utils.versions.version_reader import read_version_from_file
+from utils.resource_path import resource_path
 from states.gamestate import game_state
+import os
 
 
 def quit_button_action():
@@ -49,9 +50,16 @@ class MenuPage:
         # Initialize font for version label
         self.font = pygame.font.Font(None, 25)  # You can specify a font file and size
 
-    def display(self, event: pygame.event.Event) -> None:
+        self.logo_image = pygame.image.load(resource_path(os.path.join("assets", "icon.png")))
+        self.logo_image = self.logo_image.convert_alpha()
+        self.logo_image = pygame.transform.smoothscale(self.logo_image, (400, 400))
+        
 
+    def display(self, event: pygame.event.Event) -> None:
+        
         self.screen.fill(colors.BACKGROUND_COLOR)
+
+        
 
         if game_state.in_game and not self.is_resume_added:
             self.menu_buttons.pop(0)
@@ -86,7 +94,7 @@ class MenuPage:
         # Display the menu buttons on the screen
         del_y = 0
         for button, _ in self.menu_buttons:
-            button.set_position(self.screen.get_width() // 2, start_height + del_y, center=True)
+            button.set_position(self.logo_image.get_rect().bottomright[0]+100, start_height + del_y, center=True)
             del_y += button.get_button_height() + self.button_padding
 
         # Display the menu buttons on the screen
@@ -94,5 +102,14 @@ class MenuPage:
             button.display(self.screen)
             button.on_click(event, action)
     
+
+        
+
+        start_y = self.menu_buttons[0][0].get_start_position()[1]
+        end_y = self.menu_buttons[-1][0].get_end_position()[1]
+        middle_y = (start_y + end_y) // 2
+        logo_height = self.logo_image.get_height()
+        logo_start = (middle_y - logo_height // 2)
+        self.screen.blit(self.logo_image, (0, logo_start+10))
 
         pygame.display.update()
