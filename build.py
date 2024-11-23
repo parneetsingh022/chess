@@ -9,6 +9,7 @@ build_notes = {
     ],
     "bug-fix": [
         "Reset button: The reset button now resets the game only when the game is in progress.",
+        "Castling: Fixed an issue where castling was incorrectly allowed when the king was under check or when a piece could attack the squares the king passes through during castling.",
     ]
 }
 
