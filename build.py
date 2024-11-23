@@ -7,6 +7,7 @@ build_notes = {
     "features": [
         "Checkmate: The game now detects checks and checkmates.",
         "Movements: The game now only allows moves that eliminate check when the king is under threat.",
+        "Menu Logo: The game now displays a logo on the menu screen.",
     ],
     "bug-fix": [
         "Reset button: The reset button now resets the game only when the game is in progress.",
