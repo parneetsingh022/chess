@@ -8,7 +8,7 @@ build_notes = {
         "Checkmate: The game now detects checks and checkmates.",
     ],
     "bug-fix": [
-       
+        "Reset button: The reset button now resets the game only when the game is in progress.",
     ]
 }
 
