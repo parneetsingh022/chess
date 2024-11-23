@@ -84,6 +84,15 @@ def is_check(board, color):
                 
                 king_pos = (x + 1, y + 1)
 
+    # for row in board:
+    #     for piece in row:
+    #         elm = "  "
+    #         if piece != "":
+    #             elm = piece
+    #         print(elm, end=" ")
+    #     print()
+    # print("\n","#"*50,"\n")
+
     opponent_color = 'white' if color == 'black' else 'black'
     opponents_possible_moves = []
     i = -1
@@ -108,5 +117,5 @@ def is_check(board, color):
             elif piece_type == 'k':
                 opponents_possible_moves.extend(king_moves(board, opponent_color, x, y, False, False, False))
         
-    return king_pos in opponents_possible_moves
+    return (king_pos in opponents_possible_moves), king_pos
     

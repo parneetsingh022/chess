@@ -38,7 +38,7 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         if piece.piece_type == PieceType.KNIGHT:
             piece_code = f"{color[0]}N"
         new_board[move[1]-1][move[0]-1] = piece_code.upper()  # Place the piece in the new position
-        if not is_check(new_board, "white" if color == "black" else "black"):
+        if not is_check(new_board, "white" if color == "black" else "black")[0]:
             
             valid_moves.append(move)
             
@@ -59,8 +59,7 @@ class BoardPiecesManager:
 
         self.event = None
 
-        self.is_under_check = False
-        self.is_check_mate = False
+        
 
     def add_event(self, event):
         self.event = event  
@@ -100,6 +99,11 @@ class BoardPiecesManager:
         self.white_rook2_moved = False
         self.black_rook1_moved = False
         self.black_rook2_moved = False
+
+        self.is_under_check = False
+        self.is_check_mate = False
+
+        game_state.reset()
 
     def _draw_rectangle(self, x, y):
         if self.player == "black":
@@ -160,7 +164,10 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
-
+        if self.is_check_mate or self._no_move_left():
+            self.is_check_mate = True
+            self.selected_piece = None
+        
         if game_state.start_new:
             self.reset()
             game_state.start_new = False
@@ -240,9 +247,7 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
-        if self._no_move_left():
-            print("Checkmate")
-            return
+        
         if game_state.pop_up_on: return
         if not self.selected_piece:
             return
@@ -283,7 +288,10 @@ class BoardPiecesManager:
 
                 # Update the layout for the moved piece
                 self.layout[from_y][from_x] = ""  # Clear the old position
-                self.layout[to_y][to_x] = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+                pname = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+                if piece.piece_type == PieceType.KNIGHT:
+                    pname = f"{piece.piece_color.name[0]}N"
+                self.layout[to_y][to_x] = pname
 
                 # Move the piece in self.pieces
                 self.pieces[i] = (piece, to_x + 1, to_y + 1)  # Update to new position
@@ -326,7 +334,11 @@ class BoardPiecesManager:
                             self.black_rook1_moved = True
                         elif from_x == 7 and from_y == 0:
                             self.black_rook2_moved = True
-                self.is_under_check = is_check(self.layout, self.turn)
+                self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+                if self.is_under_check:
+                    game_state.check_position = king_pos_c
+                else:
+                    game_state.check_position = None
                 self.turn = "white" if self.turn == "black" else "black"
 
                 break

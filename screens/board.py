@@ -63,6 +63,10 @@ class BoardPage:
             last_right_button_pos = btn.button.start_pos()
 
     def display(self, event: pygame.event.Event) -> None:
+        if game_state.check_position is not None:
+            self.chess_board_manager.set_color_red(*game_state.check_position)
+        else:
+            self.chess_board_manager.unset_color_red()
 
         self.board_pieces_manager.add_event(event)
         # Fill screen and draw all components
