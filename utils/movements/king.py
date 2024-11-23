@@ -1,3 +1,9 @@
+from utils.movements.pawn import pawn_moves
+from utils.movements.rook import rook_moves
+from utils.movements.knight import knight_moves
+from utils.movements.bishop import bishop_moves
+from utils.movements.queen import queen_moves
+
 def king_moves(board, color, x, y, king_moved, rook1_moved, rook2_moved):
     """
     Lists all possible moves for a king piece, including castling.
@@ -51,3 +57,65 @@ def king_moves(board, color, x, y, king_moved, rook1_moved, rook2_moved):
                 moves.append((3, 1))  # Convert to 1-indexed
 
     return moves
+
+
+def flatten(nested_list):
+    return [item for sublist in nested_list for item in (flatten(sublist) if isinstance(sublist, list) else [sublist])]
+
+def is_check(board, color):
+    """
+    Checks if the given color is in check.
+    
+    Args:
+        board (list): The current state of the chess board.
+        color (str): The color to check ('white' or 'black').
+    
+    Returns:
+        bool: True if the color is in check, False otherwise.
+    """
+    
+
+    king_pos = None
+    color = "white" if color == "black" else "black"
+
+    for y, row in enumerate(board):
+        for x, piece in enumerate(row):
+            if piece.lower() == f"{color[0]}k":
+                
+                king_pos = (x + 1, y + 1)
+
+    # for row in board:
+    #     for piece in row:
+    #         elm = "  "
+    #         if piece != "":
+    #             elm = piece
+    #         print(elm, end=" ")
+    #     print()
+    # print("\n","#"*50,"\n")
+
+    opponent_color = 'white' if color == 'black' else 'black'
+    opponents_possible_moves = []
+    i = -1
+    for p in flatten(board):
+        i+=1
+        if p and p[0].lower() == opponent_color[0]:
+            piece_type = p[1].lower()
+
+            x = i%8 + 1
+            y = i//8 + 1
+
+            if piece_type == 'p':
+                opponents_possible_moves.extend(pawn_moves(board, opponent_color, x, y))
+            elif piece_type == 'r':
+                opponents_possible_moves.extend(rook_moves(board, opponent_color, x, y))
+            elif piece_type == 'n':
+                opponents_possible_moves.extend(knight_moves(board, opponent_color, x, y))
+            elif piece_type == 'b':
+                opponents_possible_moves.extend(bishop_moves(board, opponent_color, x, y))
+            elif piece_type == 'q':
+                opponents_possible_moves.extend(queen_moves(board, opponent_color, x, y))
+            elif piece_type == 'k':
+                opponents_possible_moves.extend(king_moves(board, opponent_color, x, y, False, False, False))
+        
+    return (king_pos in opponents_possible_moves), king_pos
+    

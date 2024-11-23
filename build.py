@@ -5,9 +5,10 @@ build_notes = {
     "version": version,
     "description": "",
     "features": [
+        "Checkmate: The game now detects checks and checkmates.",
     ],
     "bug-fix": [
-        "Reset Button: Resolved the issue where players could reset the game even when it was already reset or there was nothing to reset.",
+        "Reset button: The reset button now resets the game only when the game is in progress.",
     ]
 }
 

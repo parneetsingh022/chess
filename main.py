@@ -10,6 +10,7 @@ from screens.settings import SettingsPage
 
 from utils import screen_manager
 from utils.board_theme_reader import ThemeReader
+from utils.resource_path import resource_path
 
 # Determine the base directory and append it to sys.path
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +25,12 @@ BOARD_TOP_BAR_HEIGHT = 50
 # Set up the screen with double buffering
 screen = pygame.display.set_mode((650, 650 + BOARD_TOP_BAR_HEIGHT), pygame.DOUBLEBUF)
 pygame.display.set_caption("Chess")
+
+# Load and set the icon
+icon_path = resource_path("assets/icon.png")  # Path to your icon image
+icon = pygame.image.load(icon_path)
+pygame.display.set_icon(icon)
+
 
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
