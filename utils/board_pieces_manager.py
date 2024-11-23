@@ -10,6 +10,7 @@ from components.turn_indicator import TurnIndicator
 from utils.local_storage.storage import settings_file_manager
 from states.gamestate import game_state
 from components.popup import Popup
+from constants.fonts import CHECK_MATETEXT_MAIN
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
@@ -145,6 +146,29 @@ class BoardPiecesManager:
         # Blit the scaled surface onto the main screen
         self.screen.blit(scaled_surface, (x_center - self.square_size // 2, y_center - self.square_size // 2))
 
+    def _draw_checkmate_popup(self):
+        start_x = 0
+        start_y = self.board_top_bar_height
+        
+        font = CHECK_MATETEXT_MAIN
+        text = font.render("Checkmate!", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        
+        # Define the background color and rectangle size
+        background_color = (0, 0, 0, 180)  # Black background with transparency (alpha = 180)
+        
+        # Create a new surface with an alpha channel that covers the entire screen
+        background_surface = pygame.Surface((self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
+        
+        # Draw the background rectangle on the new surface
+        pygame.draw.rect(background_surface, background_color, background_surface.get_rect())
+        
+        # Blit the background surface onto the main screen
+        self.screen.blit(background_surface, (start_x, start_y))
+        
+        # Draw the text on top of the background
+        self.screen.blit(text, text_rect)
+
     def _initialize_pieces(self):
         pieces = []
         for y, row in enumerate(self.layout):
@@ -164,9 +188,12 @@ class BoardPiecesManager:
         return pieces
 
     def display(self):
+
+        
         if self.is_check_mate or self._no_move_left():
             self.is_check_mate = True
             self.selected_piece = None
+        
         
         if game_state.start_new:
             self.reset()
@@ -196,8 +223,11 @@ class BoardPiecesManager:
         if settings_file_manager.get_setting("movement_indicators"):
             for move in self.selected_possible_moves:
                 self._draw_circle(move[0], move[1])
-        
+
+
+        if self.is_check_mate: self._draw_checkmate_popup()
         self.reset_popup.draw()
+        
         # Update the display once after all drawing operations
         pygame.display.flip()
 
