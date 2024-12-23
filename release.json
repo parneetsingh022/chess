@@ -1,6 +1,6 @@
 {
     "version": "v0.3.0-beta.1",
-    "description": "",
+    "description": "This update introduces advanced game mechanics for better gameplay experience and fixes critical bugs to ensure rules are strictly followed.",
     "features": [
         "Checkmate: The game now detects checks and checkmates.",
         "Movements: The game now only allows moves that eliminate check when the king is under threat.",
