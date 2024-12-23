@@ -4,12 +4,13 @@ from .movements.pawn import pawn_moves
 from .movements.bishop import bishop_moves
 from .movements.knight import knight_moves
 from .movements.rook import rook_moves
-from .movements.king import king_moves
+from .movements.king import king_moves, is_check
 from .movements.queen import queen_moves
 from components.turn_indicator import TurnIndicator
 from utils.local_storage.storage import settings_file_manager
 from states.gamestate import game_state
 from components.popup import Popup
+from constants.fonts import CHECK_MATETEXT_MAIN
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
@@ -28,8 +29,23 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         moves = queen_moves(board, color, x, y)
     else:
         moves = []
-    return moves
 
+    # If the king is under check, filter moves to only include those that prevent check
+    valid_moves = []
+    for move in moves:
+        new_board = [row[:] for row in board]  # Create a copy of the board
+        new_board[y-1][x-1] = ""  # Remove the piece from the original position
+        piece_code = f"{color[0]}{piece.piece_type.name[0]}"
+        if piece.piece_type == PieceType.KNIGHT:
+            piece_code = f"{color[0]}N"
+        new_board[move[1]-1][move[0]-1] = piece_code.upper()  # Place the piece in the new position
+        if not is_check(new_board, "white" if color == "black" else "black")[0]:
+            
+            valid_moves.append(move)
+            
+    moves = valid_moves
+
+    return moves
 
 class BoardPiecesManager:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, board_top_bar_height: int):
@@ -43,6 +59,8 @@ class BoardPiecesManager:
         self.reset()
 
         self.event = None
+
+        
 
     def add_event(self, event):
         self.event = event  
@@ -83,6 +101,11 @@ class BoardPiecesManager:
         self.black_rook1_moved = False
         self.black_rook2_moved = False
 
+        self.is_under_check = False
+        self.is_check_mate = False
+
+        game_state.reset()
+
     def _draw_rectangle(self, x, y):
         if self.player == "black":
             x = 9 - x
@@ -92,6 +115,15 @@ class BoardPiecesManager:
         y = (y - 1) * self.square_size + self.board_top_bar_height
 
         pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
+
+    def _no_move_left(self):
+        if not self.is_under_check: return
+        for piece in self.pieces:
+            if piece[0].piece_color.name.lower() == self.turn:
+                moves = get_possible_positions(piece[0], piece[0].piece_color.name.lower(), self.layout, piece[1], piece[2], False, False, False)
+                if moves: return False
+
+        return True
 
     def _draw_circle(self, x, y):
         if self.player == "black":
@@ -114,6 +146,29 @@ class BoardPiecesManager:
         # Blit the scaled surface onto the main screen
         self.screen.blit(scaled_surface, (x_center - self.square_size // 2, y_center - self.square_size // 2))
 
+    def _draw_checkmate_popup(self):
+        start_x = 0
+        start_y = self.board_top_bar_height
+        
+        font = CHECK_MATETEXT_MAIN
+        text = font.render("Checkmate!", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        
+        # Define the background color and rectangle size
+        background_color = (0, 0, 0, 180)  # Black background with transparency (alpha = 180)
+        
+        # Create a new surface with an alpha channel that covers the entire screen
+        background_surface = pygame.Surface((self.screen.get_width(), self.screen.get_height()), pygame.SRCALPHA)
+        
+        # Draw the background rectangle on the new surface
+        pygame.draw.rect(background_surface, background_color, background_surface.get_rect())
+        
+        # Blit the background surface onto the main screen
+        self.screen.blit(background_surface, (start_x, start_y))
+        
+        # Draw the text on top of the background
+        self.screen.blit(text, text_rect)
+
     def _initialize_pieces(self):
         pieces = []
         for y, row in enumerate(self.layout):
@@ -134,6 +189,12 @@ class BoardPiecesManager:
 
     def display(self):
 
+        
+        if self.is_check_mate or self._no_move_left():
+            self.is_check_mate = True
+            self.selected_piece = None
+        
+        
         if game_state.start_new:
             self.reset()
             game_state.start_new = False
@@ -162,8 +223,11 @@ class BoardPiecesManager:
         if settings_file_manager.get_setting("movement_indicators"):
             for move in self.selected_possible_moves:
                 self._draw_circle(move[0], move[1])
-        
+
+
+        if self.is_check_mate: self._draw_checkmate_popup()
         self.reset_popup.draw()
+        
         # Update the display once after all drawing operations
         pygame.display.flip()
 
@@ -213,6 +277,7 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
+        
         if game_state.pop_up_on: return
         if not self.selected_piece:
             return
@@ -253,7 +318,10 @@ class BoardPiecesManager:
 
                 # Update the layout for the moved piece
                 self.layout[from_y][from_x] = ""  # Clear the old position
-                self.layout[to_y][to_x] = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+                pname = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+                if piece.piece_type == PieceType.KNIGHT:
+                    pname = f"{piece.piece_color.name[0]}N"
+                self.layout[to_y][to_x] = pname
 
                 # Move the piece in self.pieces
                 self.pieces[i] = (piece, to_x + 1, to_y + 1)  # Update to new position
@@ -296,8 +364,22 @@ class BoardPiecesManager:
                             self.black_rook1_moved = True
                         elif from_x == 7 and from_y == 0:
                             self.black_rook2_moved = True
-
+                self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+                if self.is_under_check:
+                    game_state.check_position = king_pos_c
+                else:
+                    game_state.check_position = None
                 self.turn = "white" if self.turn == "black" else "black"
+
+                for row in self.layout:
+                    for elm in row:
+                        if elm == "":
+                            print("  ", end=" ")
+                        else:
+                            print(elm, end=" ")
+                    print()
+
+                print("#"*50)
 
                 break
 
