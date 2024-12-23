@@ -371,6 +371,16 @@ class BoardPiecesManager:
                     game_state.check_position = None
                 self.turn = "white" if self.turn == "black" else "black"
 
+                for row in self.layout:
+                    for elm in row:
+                        if elm == "":
+                            print("  ", end=" ")
+                        else:
+                            print(elm, end=" ")
+                    print()
+
+                print("#"*50)
+
                 break
 
         # Remove the captured piece after the loop (to avoid list modification issues during iteration)

@@ -26,7 +26,12 @@ def is_square_attacked(board, x, y, attacker_color):
                 piece_type = piece[1].lower()
                 
                 if piece_type == 'p':
-                    moves = pawn_moves(board, attacker_color, j + 1, i + 1)
+                    # Pawns attack diagonally by one square only
+                    if attacker_color == 'white':
+                        moves = [(j + 1 + 1, i + 1 - 1), (j + 1 - 1, i + 1 - 1)]  # Diagonal squares for white pawns
+                    else:
+                        moves = [(j + 1 + 1, i + 1 + 1), (j + 1 - 1, i + 1 + 1)]  # Diagonal squares for black pawns
+
                 elif piece_type == 'r':
                     moves = rook_moves(board, attacker_color, j + 1, i + 1)
                 elif piece_type == 'n':
@@ -49,6 +54,7 @@ def is_square_attacked(board, x, y, attacker_color):
                     moves = []
 
                 if (x + 1, y + 1) in moves:
+                    #print(f"Square ({x + 1}, {y + 1}) is attacked by {piece} at ({j + 1}, {i + 1})")
                     return True
     return False
 

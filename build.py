@@ -5,7 +5,7 @@ build_notes = {
     "version": version,
     "description": "",
     "features": [
-        "Checkmate: The game now detects checks and checkmates.",
+        "Checkmate: The game now detects checks and pcheckmates.",
         "Movements: The game now only allows moves that eliminate check when the king is under threat.",
         "Menu Logo: The game now displays a logo on the menu screen.",
     ],
