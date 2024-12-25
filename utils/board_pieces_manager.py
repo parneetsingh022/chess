@@ -79,12 +79,12 @@ class BoardPiecesManager:
             return
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
-            ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
+            ["BP", "WP", "BP", "BP", "BP", "BP", "BP", "BP"],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
-            ["WP", "WP", "WP", "WP", "WP", "WP", "WP", "WP"],
+            ["WP", "BP", "WP", "WP", "WP", "WP", "WP", "WP"],
             ["WR", "WN", "WB", "WQ", "WK", "WB", "WN", "WR"]
         ]
 
@@ -187,6 +187,69 @@ class BoardPiecesManager:
                     pieces.append((piece, x + 1, y + 1))
         return pieces
 
+    def show_promotion_options(self, pos, color):
+        """Display promotion options for the pawn."""
+        x, y = pos
+        options = [PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT]
+        option_size = self.square_size // 1.5
+        option_rects = []
+        
+        # Calculate the total width and height of the promotion options
+        total_width = len(options) * option_size
+        total_height = option_size
+
+        # Calculate the initial starting position
+        start_x = (x - 1) * self.square_size + (self.square_size - total_width) // 2
+        start_y = (y - 1) * self.square_size + 2 * self.board_top_bar_height
+
+        # Ensure the box doesn't go outside the window horizontally
+        if start_x < 0:
+            start_x = 0  # Align to the left edge
+        elif start_x + total_width > self.screen.get_width():
+            start_x = self.screen.get_width() - total_width  # Align to the right edge
+
+        # Ensure the box doesn't go outside the window vertically
+        if start_y < 0:
+            start_y = 0  # Align to the top edge
+        elif start_y + total_height > self.screen.get_height():
+            start_y = self.screen.get_height() - total_height  # Align to the bottom edge
+
+        # Draw the outer border
+        outer_rect = pygame.Rect(start_x, start_y, total_width, total_height)
+        pygame.draw.rect(self.screen, (200, 200, 200), outer_rect)  # Light grey color
+        pygame.draw.rect(self.screen, (0, 0, 0), outer_rect, 2)  # Black border with width 2
+
+        for i, option in enumerate(options):
+            rect_x = start_x + i * option_size
+            rect_y = start_y
+            rect = pygame.Rect(rect_x, rect_y, option_size, option_size)
+            option_rects.append((rect, option))
+
+            # Display the piece
+            piece = Piece(self.screen, option_size, self.player, option, color)
+            piece.display(rect_x, rect_y, 0, absolute_coordinates=True)
+
+        pygame.display.flip()
+        return option_rects
+
+
+    
+    def handle_promotion_selection(self, pos, color):
+        """Handle the selection of the promotion piece."""
+        option_rects = self.show_promotion_options(pos, color)
+        selected_piece_type = None
+
+        while not selected_piece_type:
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = event.pos
+                    for rect, piece_type in option_rects:
+                        if rect.collidepoint(mouse_pos):
+                            selected_piece_type = piece_type
+                            break
+
+        return selected_piece_type
+    
     def display(self):
 
         
@@ -369,8 +432,9 @@ class BoardPiecesManager:
                 if piece.piece_type == PieceType.PAWN:
                     prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
                     if ((to_y + 1) == 8 or (to_y + 1) == 1):
-                        self.layout[to_y][to_x] = f"{prefix}Q"
-                        self.pieces[i] = (Piece(self.screen, self.square_size, self.player, PieceType.QUEEN, piece.piece_color), to_x + 1, to_y + 1)
+                        selected_piece_type = self.handle_promotion_selection((to_x, to_y), piece.piece_color)
+                        self.layout[to_y][to_x] = f"{prefix}{selected_piece_type.name[0]}"
+                        self.pieces[i] = (Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color), to_x + 1, to_y + 1)
 
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
                 if self.is_under_check:
