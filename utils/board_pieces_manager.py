@@ -79,12 +79,12 @@ class BoardPiecesManager:
             return
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
-            ["BP", "WP", "BP", "BP", "BP", "BP", "BP", "BP"],
+            ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
             ["", "", "", "", "", "", "", ""],
-            ["WP", "BP", "WP", "WP", "WP", "WP", "WP", "WP"],
+            ["WP", "WP", "WP", "WP", "WP", "WP", "WP", "WP"],
             ["WR", "WN", "WB", "WQ", "WK", "WB", "WN", "WR"]
         ]
 
