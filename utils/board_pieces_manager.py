@@ -364,22 +364,21 @@ class BoardPiecesManager:
                             self.black_rook1_moved = True
                         elif from_x == 7 and from_y == 0:
                             self.black_rook2_moved = True
+                
+
+                if piece.piece_type == PieceType.PAWN:
+                    prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
+                    if ((to_y + 1) == 8 or (to_y + 1) == 1):
+                        self.layout[to_y][to_x] = f"{prefix}Q"
+                        self.pieces[i] = (Piece(self.screen, self.square_size, self.player, PieceType.QUEEN, piece.piece_color), to_x + 1, to_y + 1)
+
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
                 if self.is_under_check:
                     game_state.check_position = king_pos_c
                 else:
                     game_state.check_position = None
-                self.turn = "white" if self.turn == "black" else "black"
 
-                for row in self.layout:
-                    for elm in row:
-                        if elm == "":
-                            print("  ", end=" ")
-                        else:
-                            print(elm, end=" ")
-                    print()
-
-                print("#"*50)
+                self.turn = "white" if self.turn == "black" else "black" 
 
                 break
 
