@@ -431,10 +431,16 @@ class BoardPiecesManager:
 
                 if piece.piece_type == PieceType.PAWN:
                     prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
+                    
                     if ((to_y + 1) == 8 or (to_y + 1) == 1):
                         selected_piece_type = self.handle_promotion_selection((to_x, to_y), piece.piece_color)
-                        self.layout[to_y][to_x] = f"{prefix}{selected_piece_type.name[0]}"
-                        self.pieces[i] = (Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color), to_x + 1, to_y + 1)
+                        postfix = selected_piece_type.name[0] if selected_piece_type != PieceType.KNIGHT else "N"
+                        self.layout[to_y][to_x] = f"{prefix}{postfix}"
+                        self.pieces[i] = (
+                            Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color), 
+                            to_x + 1, 
+                            to_y + 1
+                        )
 
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
                 if self.is_under_check:
