@@ -206,7 +206,7 @@ class SettingsOptionCard(SettingsCard):
         self.image.blit(text_surface, text_rect)
         
         # Render the right-aligned text
-        right_text_surface = self.right_text_font.render(self.right_text, True, colors.BLACK_COLOR)
+        right_text_surface = self.right_text_font.render(self.right_text.capitalize(), True, colors.BLACK_COLOR)
         right_text_rect = right_text_surface.get_rect()
         right_text_rect.topright = (self.rect.width - 10, (self.rect.height - right_text_rect.height) // 2)  # Padding from the right side
         
@@ -229,7 +229,7 @@ class SettingsOptionCard(SettingsCard):
         elif event.type == pygame.MOUSEBUTTONUP and self.clicked:
             if self.rect.collidepoint(event.pos):
                 self.clicked = False
-                pos = self.options.index(self.right_text)
+                pos = self.options.index(self.right_text.lower())
                 pos = (pos + 1) % len(self.options)
                 self.right_text = self.options[pos]
                 if self.target_atrb is not None:
