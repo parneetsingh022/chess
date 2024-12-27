@@ -263,7 +263,10 @@ class BoardPiecesManager:
         if self.player != settings_default_player:
             self.player = settings_default_player
             self.reset(flip=True)
-            king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
+            if game_state.check_position:
+                king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
+            else:
+                king_pos_c = None
             game_state.check_position = king_pos_c
         
         if self.is_check_mate or self._no_move_left():
