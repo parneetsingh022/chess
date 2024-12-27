@@ -72,7 +72,7 @@ class BoardPiecesManager:
     def reset_popup_no(self):
         pass
 
-    def reset(self, show_p=False):
+    def reset(self, show_p=False, flip=False):
         if show_p: 
             self.reset_popup.show()
 
@@ -86,11 +86,14 @@ class BoardPiecesManager:
             ["", "", "", "", "", "", "", ""],
             ["WP", "WP", "WP", "WP", "WP", "WP", "WP", "WP"],
             ["WR", "WN", "WB", "WQ", "WK", "WB", "WN", "WR"]
-        ]
+        ] if not flip else self.layout
 
         self.pieces = self._initialize_pieces()
         self.selected_piece = None
         self.selected_possible_moves = []
+
+        if flip: return
+
         self.turn = "white"
 
         self.white_king_moved = False
@@ -187,8 +190,81 @@ class BoardPiecesManager:
                     pieces.append((piece, x + 1, y + 1))
         return pieces
 
-    def display(self):
+    def show_promotion_options(self, pos, color):
+        """Display promotion options for the pawn."""
+        x, y = pos
+        options = [PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT]
+        option_size = self.square_size // 1.5
+        option_rects = []
 
+        # Calculate the total width and height of the promotion options
+        total_width = len(options) * option_size
+        total_height = option_size
+
+        # Calculate the initial starting position
+        if self.player == "black":
+            start_x = (8 - x) * self.square_size + (self.square_size - total_width) // 2
+            start_y = (8 - y) * self.square_size + 2 * self.board_top_bar_height
+        else:
+            start_x = (x - 1) * self.square_size + (self.square_size - total_width) // 2
+            start_y = (y - 1) * self.square_size + 2 * self.board_top_bar_height
+
+        # Ensure the box doesn't go outside the window horizontally
+        if start_x < 0:
+            start_x = 0  # Align to the left edge
+        elif start_x + total_width > self.screen.get_width():
+            start_x = self.screen.get_width() - total_width  # Align to the right edge
+
+        # Ensure the box doesn't go outside the window vertically
+        if start_y < 0:
+            start_y = 0  # Align to the top edge
+        elif start_y + total_height > self.screen.get_height():
+            start_y = self.screen.get_height() - total_height  # Align to the bottom edge
+
+        # Draw the outer border
+        outer_rect = pygame.Rect(start_x, start_y, total_width, total_height)
+        pygame.draw.rect(self.screen, (200, 200, 200), outer_rect)  # Light grey color
+        pygame.draw.rect(self.screen, (0, 0, 0), outer_rect, 2)  # Black border with width 2
+
+        for i, option in enumerate(options):
+            rect_x = start_x + i * option_size
+            rect_y = start_y
+            rect = pygame.Rect(rect_x, rect_y, option_size, option_size)
+            option_rects.append((rect, option))
+
+            # Display the piece
+            piece = Piece(self.screen, option_size, self.player, option, color)
+            piece.display(rect_x, rect_y, 0, absolute_coordinates=True)
+
+        pygame.display.flip()
+        return option_rects
+
+
+    
+    def handle_promotion_selection(self, pos, color):
+        """Handle the selection of the promotion piece."""
+        option_rects = self.show_promotion_options(pos, color)
+        selected_piece_type = None
+
+        while not selected_piece_type:
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = event.pos
+                    for rect, piece_type in option_rects:
+                        if rect.collidepoint(mouse_pos):
+                            selected_piece_type = piece_type
+                            break
+
+        return selected_piece_type
+    
+    def display(self):
+        settings_default_player = settings_file_manager.get_setting("default_player").lower()
+
+        if self.player != settings_default_player:
+            self.player = settings_default_player
+            self.reset(flip=True)
+            king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
+            game_state.check_position = king_pos_c
         
         if self.is_check_mate or self._no_move_left():
             self.is_check_mate = True
@@ -364,22 +440,32 @@ class BoardPiecesManager:
                             self.black_rook1_moved = True
                         elif from_x == 7 and from_y == 0:
                             self.black_rook2_moved = True
+                
+
+                if piece.piece_type == PieceType.PAWN:
+                    prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
+                    
+                    if ((to_y + 1) == 8 or (to_y + 1) == 1):
+                        selected_piece_type = self.handle_promotion_selection((to_x, to_y), piece.piece_color)
+                        postfix = selected_piece_type.name[0] if selected_piece_type != PieceType.KNIGHT else "N"
+                        self.layout[to_y][to_x] = f"{prefix}{postfix}"
+                        self.pieces[i] = (
+                            Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color), 
+                            to_x + 1, 
+                            to_y + 1
+                        )
+
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+                if self.player == "black":
+                    king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
+                
+
                 if self.is_under_check:
                     game_state.check_position = king_pos_c
                 else:
                     game_state.check_position = None
-                self.turn = "white" if self.turn == "black" else "black"
 
-                for row in self.layout:
-                    for elm in row:
-                        if elm == "":
-                            print("  ", end=" ")
-                        else:
-                            print(elm, end=" ")
-                    print()
-
-                print("#"*50)
+                self.turn = "white" if self.turn == "black" else "black" 
 
                 break
 

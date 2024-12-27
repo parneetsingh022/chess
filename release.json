@@ -1,13 +1,11 @@
 {
-    "version": "v0.3.0-beta.1",
-    "description": "This update introduces advanced game mechanics for better gameplay experience and fixes critical bugs to ensure rules are strictly followed.",
+    "version": "v0.3.0-beta.2",
+    "description": "",
     "features": [
-        "Checkmate: The game now detects checks and checkmates.",
-        "Movements: The game now only allows moves that eliminate check when the king is under threat.",
-        "Menu Logo: The game now displays a logo on the menu screen."
+        "Pawn Promotion: Users can now promote their pawn to a desired piece upon reaching the end of the board.",
+        "Default Player: Added option to switch between white and black as the default player in settings."
     ],
     "bug-fix": [
-        "Reset button: The reset button now resets the game only when the game is in progress.",
-        "Castling: Fixed an issue where castling was incorrectly allowed when the king was under check or when a piece could attack the squares the king passes through during castling."
+        "Check: fixed a bug where kings check is displayed at wrong position when default player is black."
     ]
 }

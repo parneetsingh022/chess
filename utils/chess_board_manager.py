@@ -1,5 +1,6 @@
 import pygame
 from typing import Tuple
+from utils.local_storage.storage import settings_file_manager  # Import the SettingsFileManager class
 
 def draw_square(i, j, square_size, color, screen, board_top_bar_height):
     pygame.draw.rect(screen, color, pygame.Rect(i * square_size, j * square_size + board_top_bar_height, square_size, square_size))
@@ -10,11 +11,21 @@ class ChessBoardManager:
         self.screen_width = screen_width
         self._square_size = screen_width // 8  # Ensure square size is an integer
         self.player = player
+        settings_player = settings_file_manager.get_setting("default_player")
+        if settings_player is not None:
+            self.player = settings_player.lower()
+
         self.board_top_bar_height = board_top_bar_height
         self.red_color = (200, 0, 0)
         self.color_state = {}  # Dictionary to track the color state of specific squares
 
+        
+
     def draw_board(self, black_color: Tuple, white_color: Tuple) -> None:
+        settings_default_player = settings_file_manager.get_setting("default_player").lower()
+        if self.player != settings_default_player:
+            self.player = settings_default_player
+
         for i in range(0, 8):
             for j in range(0, 8):
                 color1, color2 = (white_color, black_color) if (i + j) % 2 == 0 else (black_color, white_color)

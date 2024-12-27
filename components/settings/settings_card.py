@@ -161,3 +161,78 @@ class SettingsTextCard(SettingsCard):
         
         # Blit the image onto the screen
         screen.blit(self.image, self.rect)
+
+class SettingsOptionCard(SettingsCard):
+    def __init__(self, text, default_options, width, height=50, restart=False):
+        super().__init__(text, width, height, clickable=True)
+        self.clicked = False
+        self.target_atrb = None
+        self.right_text_font = fonts.SETTING_FONT_CARD_SUBTEXT
+        self.restart_text_font = fonts.SETTING_SUBMESSAGE
+        self.right_text = None
+        self.options = default_options
+        self.loaded_settings = False
+        self.restart = restart
+        self.show_restart_message = False
+
+    def set_toggle(self, state):
+        self.state = state
+
+    def display(self, screen):
+        if self.right_text is None:
+            self.right_text = self.options[0] if self.options else ""
+        if settings_file_manager.get_setting(self.target_atrb) is not None and self.loaded_settings == False:
+            self.right_text = settings_file_manager.get_setting(self.target_atrb)
+            self.loaded_settings = True
+
+        # Fill the image with a transparent color
+        self.image.fill((0, 0, 0, 0))
+        
+        # Draw the rounded rectangle
+        pygame.draw.rect(
+            self.image,
+            self.color,
+            self.image.get_rect(),
+            border_radius=15  # Adjust the radius as needed
+        )
+        
+        # Render the main text
+        text_surface = self.font.render(self.text, True, colors.BLACK_COLOR)
+        text_rect = text_surface.get_rect()
+        offset = 10 if self.show_restart_message else 0
+        text_rect.topleft = (10, ((self.rect.height - text_rect.height) // 2) - offset)  # Padding from the left side
+        
+        # Blit the main text onto the image
+        self.image.blit(text_surface, text_rect)
+        
+        # Render the right-aligned text
+        right_text_surface = self.right_text_font.render(self.right_text, True, colors.BLACK_COLOR)
+        right_text_rect = right_text_surface.get_rect()
+        right_text_rect.topright = (self.rect.width - 10, (self.rect.height - right_text_rect.height) // 2)  # Padding from the right side
+        
+        # Blit the right-aligned text onto the image
+        self.image.blit(right_text_surface, right_text_rect)
+        
+        
+        restart_text_surface = self.restart_text_font.render("Restart required for this to take effect", True, (255, 0, 0))
+        restart_text_rect = restart_text_surface.get_rect()
+        restart_text_rect.topleft = (10, text_rect.bottom)  # Position below the main text
+        if self.show_restart_message:
+            self.image.blit(restart_text_surface, restart_text_rect)
+        # Blit the image onto the screen
+        screen.blit(self.image, self.rect)
+
+    def on_click(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and not self.clicked:
+            if self.rect.collidepoint(event.pos):
+                self.clicked = True
+        elif event.type == pygame.MOUSEBUTTONUP and self.clicked:
+            if self.rect.collidepoint(event.pos):
+                self.clicked = False
+                pos = self.options.index(self.right_text)
+                pos = (pos + 1) % len(self.options)
+                self.right_text = self.options[pos]
+                if self.target_atrb is not None:
+                    settings_file_manager.save_setting(self.target_atrb, self.right_text)
+                if self.restart:
+                    self.show_restart_message = True

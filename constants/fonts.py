@@ -15,6 +15,7 @@ SETTING_FONT_CARD_HEADING = pygame.font.Font(_default_font_file, 19)
 SETTINGS_FONT_VERSION = pygame.font.Font(_default_font_file, 18)
 SETTING_FONT_CARD_SUBTEXT = pygame.font.Font(_default_font_file, 18)
 CHEVRON_RIGHT = pygame.font.Font(_default_font_file, 35)
+SETTING_SUBMESSAGE = pygame.font.Font(_default_font_file, 15)
 
 
 #GAME BOARD

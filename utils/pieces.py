@@ -43,7 +43,7 @@ class Piece:
         rect = pygame.Rect(col * self.piece_width, row * self.piece_height, self.piece_width, self.piece_height)
         return self.image.subsurface(rect)
     
-    def display(self, x, y, board_top_bar_height: int):
+    def display(self, x, y, board_top_bar_height: int, absolute_coordinates: bool = False):
         """
         Display the extracted piece on the screen at the specified coordinates and draw a rectangle around it.
 
@@ -55,12 +55,13 @@ class Piece:
             None
         """
         # Adjust the coordinates based on the player's perspective
-        if self.player == "black":
-            x = 9 - x
-            y = 9 - y
+        if not absolute_coordinates:
+            if self.player == "black":
+                x = 9 - x
+                y = 9 - y
 
-        x = (x - 1) * self.square_size
-        y = (y - 1) * self.square_size + board_top_bar_height
+            x = (x - 1) * self.square_size
+            y = (y - 1) * self.square_size + board_top_bar_height
 
         piece = self._extract_piece()
 
