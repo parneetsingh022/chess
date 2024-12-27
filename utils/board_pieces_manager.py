@@ -193,14 +193,18 @@ class BoardPiecesManager:
         options = [PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT]
         option_size = self.square_size // 1.5
         option_rects = []
-        
+
         # Calculate the total width and height of the promotion options
         total_width = len(options) * option_size
         total_height = option_size
 
         # Calculate the initial starting position
-        start_x = (x - 1) * self.square_size + (self.square_size - total_width) // 2
-        start_y = (y - 1) * self.square_size + 2 * self.board_top_bar_height
+        if self.player == "black":
+            start_x = (8 - x) * self.square_size + (self.square_size - total_width) // 2
+            start_y = (8 - y) * self.square_size + 2 * self.board_top_bar_height
+        else:
+            start_x = (x - 1) * self.square_size + (self.square_size - total_width) // 2
+            start_y = (y - 1) * self.square_size + 2 * self.board_top_bar_height
 
         # Ensure the box doesn't go outside the window horizontally
         if start_x < 0:
@@ -443,6 +447,9 @@ class BoardPiecesManager:
                         )
 
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+                if self.player == "black":
+                    king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
+
                 if self.is_under_check:
                     game_state.check_position = king_pos_c
                 else:
