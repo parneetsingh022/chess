@@ -72,7 +72,7 @@ class BoardPiecesManager:
     def reset_popup_no(self):
         pass
 
-    def reset(self, show_p=False):
+    def reset(self, show_p=False, flip=False):
         if show_p: 
             self.reset_popup.show()
 
@@ -86,11 +86,14 @@ class BoardPiecesManager:
             ["", "", "", "", "", "", "", ""],
             ["WP", "WP", "WP", "WP", "WP", "WP", "WP", "WP"],
             ["WR", "WN", "WB", "WQ", "WK", "WB", "WN", "WR"]
-        ]
+        ] if not flip else self.layout
 
         self.pieces = self._initialize_pieces()
         self.selected_piece = None
         self.selected_possible_moves = []
+
+        if flip: return
+
         self.turn = "white"
 
         self.white_king_moved = False
@@ -255,7 +258,13 @@ class BoardPiecesManager:
         return selected_piece_type
     
     def display(self):
+        settings_default_player = settings_file_manager.get_setting("default_player").lower()
 
+        if self.player != settings_default_player:
+            self.player = settings_default_player
+            self.reset(flip=True)
+            king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
+            game_state.check_position = king_pos_c
         
         if self.is_check_mate or self._no_move_left():
             self.is_check_mate = True
@@ -449,6 +458,7 @@ class BoardPiecesManager:
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
                 if self.player == "black":
                     king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
+                
 
                 if self.is_under_check:
                     game_state.check_position = king_pos_c

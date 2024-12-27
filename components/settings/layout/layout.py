@@ -5,17 +5,19 @@ class LayoutType(Enum):
     LayoutCategory = "category"
     LayoutToggle = "toggle"
     LayoutText = "text"
+    LayoutOption = "option"
 
 class Layout:
-    def __init__(self, name, layout_type: LayoutType, parent=None, target_atrb=None):
+    def __init__(self, name, layout_type: LayoutType, parent=None, target_atrb=None, options=[]):
         self.name = name
         self.layout_type = layout_type
         self.sub_layouts = {}
         self.parent = parent
         self.target_atrb = target_atrb
+        self.options = options
 
-    def add_sub_layout(self, name, layout_type: LayoutType, target_atrb=None):
-        sub_layout = Layout(name, layout_type, parent=self, target_atrb=target_atrb)
+    def add_sub_layout(self, name, layout_type: LayoutType, target_atrb=None, options=[]):
+        sub_layout = Layout(name, layout_type, parent=self, target_atrb=target_atrb, options=options)
         self.sub_layouts[name] = sub_layout
         return sub_layout
 
@@ -23,7 +25,8 @@ class Layout:
         layout = {
             'type': self.layout_type.value,
             'sub_layout': {name: sub_layout.get_layout() for name, sub_layout in self.sub_layouts.items()},
-            'target_atrb': self.target_atrb
+            'target_atrb': self.target_atrb,
+            'options': self.options
         }
         return layout
 
@@ -57,6 +60,7 @@ root_layout = Layout('ROOT', LayoutType.LayoutCategory)
 general = root_layout.add_sub_layout('General', LayoutType.LayoutCategory)
 general.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_atrb='movement_indicators')
 general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
+general.add_sub_layout('Default Player', LayoutType.LayoutOption, target_atrb='default_player', options=['White', 'Black'])
 
 
 

@@ -1,7 +1,12 @@
 from constants import colors
 import pygame
 from utils.screen_manager import ScreenManager
-from components.settings.settings_card import SettingsCard, SettingsToggleCard, SettingsTextCard
+from components.settings.settings_card import (
+    SettingsCard, 
+    SettingsToggleCard, 
+    SettingsTextCard, 
+    SettingsOptionCard
+)
 from constants import fonts
 from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
@@ -104,7 +109,8 @@ class SettingsPage:
             setting_options[key] = {
                 'type': value['type'],
                 'target_atrb': value['target_atrb'],
-                'value': val
+                'value': val,
+                'options': value['options'] if 'options' in value else []
             }
         
 
@@ -118,6 +124,9 @@ class SettingsPage:
                 card.target_atrb = options['target_atrb']
             elif options['type'] == LayoutType.LayoutText.value:
                 card = SettingsTextCard(key, options['value'], self.card_width)
+            elif options['type'] == LayoutType.LayoutOption.value:
+                card = SettingsOptionCard(key, options['options'], self.card_width, restart=False)
+                card.target_atrb = options['target_atrb']
 
             if card is not None:
                 self.settings_cards.append([card, options['type']])
@@ -199,6 +208,9 @@ class SettingsPage:
                     self._init_layout()
             elif card_type == LayoutType.LayoutToggle.value:
                 card.on_click(event)
+            elif card_type == LayoutType.LayoutOption.value:
+                card.on_click(event)
+            
 
             # Update the bottom card's position
             temp_bottom = card.bottom_pos()

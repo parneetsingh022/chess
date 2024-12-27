@@ -67,9 +67,16 @@ class BoardPage:
             btn.button.set_position(last_right_button_pos - 40, 10)
             last_right_button_pos = btn.button.start_pos()
 
+        self.last_check_pos = None
+
     def display(self, event: pygame.event.Event) -> None:
+        if self.last_check_pos != game_state.check_position:
+            self.chess_board_manager.unset_color_red()
+            self.last_check_pos = game_state.check_position
+        elif self.last_check_pos is not None:
+            self.last_check_pos = game_state.check_position
         if game_state.check_position is not None:
-            self.chess_board_manager.set_color_red(*game_state.check_position)
+            self.chess_board_manager.set_color_red(*self.last_check_pos)
         else:
             self.chess_board_manager.unset_color_red()
 
