@@ -8,7 +8,7 @@ build_notes = {
         "Resize Option: Added option to resize window and choose between small, large and medium sizes",
     ],
     "bug-fix": [
-        
+        "Game crash: Fixed a bug which causes game to crash.",
     ]
 }
 
