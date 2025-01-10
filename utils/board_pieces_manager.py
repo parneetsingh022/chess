@@ -107,9 +107,11 @@ class BoardPiecesManager:
         self.is_under_check = False
         self.is_check_mate = False
 
+        self.last_moved_pos = None
+
         game_state.reset()
 
-    def _draw_rectangle(self, x, y):
+    def _draw_rectangle(self, x, y, color=(105, 176, 50)):
         if self.player == "black":
             x = 9 - x
             y = 9 - y
@@ -117,7 +119,7 @@ class BoardPiecesManager:
         x = (x - 1) * self.square_size
         y = (y - 1) * self.square_size + self.board_top_bar_height
 
-        pygame.draw.rect(self.screen, (105, 176, 50), (x, y, self.square_size, self.square_size), 4)
+        pygame.draw.rect(self.screen, color, (x, y, self.square_size, self.square_size), 4)
 
     def _no_move_left(self):
         if not self.is_under_check: return
@@ -258,6 +260,8 @@ class BoardPiecesManager:
         return selected_piece_type
     
     def display(self):
+        if self.last_moved_pos is not None:
+            self._draw_rectangle(*self.last_moved_pos, color=(128, 128, 128))
         settings_default_player = settings_file_manager.get_setting("default_player")
 
         if self.player != settings_default_player and settings_default_player is not None:
@@ -470,7 +474,7 @@ class BoardPiecesManager:
                     game_state.check_position = None
 
                 self.turn = "white" if self.turn == "black" else "black" 
-
+                self.last_moved_pos = (to_x+1,to_y+1)
                 break
 
         # Remove the captured piece after the loop (to avoid list modification issues during iteration)
