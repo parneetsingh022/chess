@@ -258,9 +258,10 @@ class BoardPiecesManager:
         return selected_piece_type
     
     def display(self):
-        settings_default_player = settings_file_manager.get_setting("default_player").lower()
+        settings_default_player = settings_file_manager.get_setting("default_player")
 
-        if self.player != settings_default_player:
+        if self.player != settings_default_player and settings_default_player is not None:
+            settings_default_player = settings_default_player.lower()
             self.player = settings_default_player
             self.reset(flip=True)
             if game_state.check_position:

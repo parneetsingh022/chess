@@ -5,11 +5,10 @@ build_notes = {
     "version": version,
     "description": "",
     "features": [
-        "Pawn Promotion: Users can now promote their pawn to a desired piece upon reaching the end of the board.",
-        "Default Player: Added option to switch between white and black as the default player in settings.",
+        "Resize Option: Added option to resize window and choose between small, large and medium sizes",
     ],
     "bug-fix": [
-        "Check: fixed a bug where kings check is displayed at wrong position when default player is black."
+        "Game crash: Fixed a bug which causes game to crash.",
     ]
 }
 

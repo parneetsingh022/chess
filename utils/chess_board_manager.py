@@ -22,8 +22,9 @@ class ChessBoardManager:
         
 
     def draw_board(self, black_color: Tuple, white_color: Tuple) -> None:
-        settings_default_player = settings_file_manager.get_setting("default_player").lower()
-        if self.player != settings_default_player:
+        settings_default_player = settings_file_manager.get_setting("default_player")
+        if self.player != settings_default_player and settings_default_player is not None:
+            settings_default_player = settings_default_player.lower()
             self.player = settings_default_player
 
         for i in range(0, 8):

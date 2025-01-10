@@ -127,6 +127,9 @@ class SettingsPage:
             elif options['type'] == LayoutType.LayoutOption.value:
                 card = SettingsOptionCard(key, options['options'], self.card_width, restart=False)
                 card.target_atrb = options['target_atrb']
+            elif options['type'] == LayoutType.LayoutOptionRestartRequired.value:
+                card = SettingsOptionCard(key, options['options'], self.card_width, restart=True)
+                card.target_atrb = options['target_atrb']
 
             if card is not None:
                 self.settings_cards.append([card, options['type']])
@@ -208,8 +211,9 @@ class SettingsPage:
                     self._init_layout()
             elif card_type == LayoutType.LayoutToggle.value:
                 card.on_click(event)
-            elif card_type == LayoutType.LayoutOption.value:
+            elif card_type == LayoutType.LayoutOption.value or card_type == LayoutType.LayoutOptionRestartRequired.value:
                 card.on_click(event)
+            
             
 
             # Update the bottom card's position
