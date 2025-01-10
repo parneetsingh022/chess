@@ -7,10 +7,10 @@ from screens.menu import MenuPage
 from screens.board import BoardPage
 from screens.settings import SettingsPage
 
-
 from utils import screen_manager
 from utils.board_theme_reader import ThemeReader
 from utils.resource_path import resource_path
+from utils.local_storage.storage import settings_file_manager
 
 # Determine the base directory and append it to sys.path
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,8 +22,22 @@ pygame.init()
 
 BOARD_TOP_BAR_HEIGHT = 50
 
+SIZE_SMALL = (450, 450 + BOARD_TOP_BAR_HEIGHT)
+SIZE_MEDIUM = (650, 650 + BOARD_TOP_BAR_HEIGHT)
+SIZE_LARGE = (850, 850 + BOARD_TOP_BAR_HEIGHT)
+
+size_from_settings = settings_file_manager.get_setting('win_size')
+cur_size = SIZE_MEDIUM
+if size_from_settings == 'small':
+    cur_size = SIZE_SMALL
+elif size_from_settings == 'large':
+    cur_size = SIZE_LARGE
+elif size_from_settings == 'medium':
+    cur_size = SIZE_MEDIUM
+
+
 # Set up the screen with double buffering
-screen = pygame.display.set_mode((650, 650 + BOARD_TOP_BAR_HEIGHT), pygame.DOUBLEBUF)
+screen = pygame.display.set_mode(cur_size, pygame.DOUBLEBUF)
 pygame.display.set_caption("Chess")
 
 # Load and set the icon
