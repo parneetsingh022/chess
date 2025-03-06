@@ -68,7 +68,7 @@ We welcome contributions to enhance the Chess game! To get started:
 
 5. Open a pull request against the `main` branch of this repository.
 
-For detailed guidelines, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) file.
+For detailed guidelines, please refer to our [CONTRIBUTING.md](./CONTRIBUTING.md) file.
 
 
 ## License
