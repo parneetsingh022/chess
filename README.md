@@ -1,7 +1,7 @@
 # Chess
 <p align="center">
-   <img src="https://github.com/user-attachments/assets/89fac7c2-67e7-46c8-a1ed-37fa0543f5b1" alt="Screenshot 2025-03-05 191955" width="500">
-  <img src="https://github.com/user-attachments/assets/e1ef5332-f661-4aaf-b462-c339d259a44c" alt="Screenshot 2025-03-05 191955" width="500">
+   <img src="https://github.com/user-attachments/assets/89fac7c2-67e7-46c8-a1ed-37fa0543f5b1" alt="Screenshot 2025-03-05 191955" width="300">
+  <img src="https://github.com/user-attachments/assets/e1ef5332-f661-4aaf-b462-c339d259a44c" alt="Screenshot 2025-03-05 191955" width="300">
 </p>
 
 
