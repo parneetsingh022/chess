@@ -13,10 +13,10 @@ from components.popup import Popup
 from constants.fonts import CHECK_MATETEXT_MAIN
 
 
-def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
+def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved, en_passant_target=None):
     # Adjust positions based on player perspective
     if piece.piece_type == PieceType.PAWN:
-        moves = pawn_moves(board, color, x, y)
+        moves = pawn_moves(board, color, x, y, en_passant_target=en_passant_target)
     elif piece.piece_type == PieceType.BISHOP:
         moves = bishop_moves(board, color, x, y)
     elif piece.piece_type == PieceType.KNIGHT:
@@ -38,6 +38,13 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         piece_code = f"{color[0]}{piece.piece_type.name[0]}"
         if piece.piece_type == PieceType.KNIGHT:
             piece_code = f"{color[0]}N"
+        # Handle en passant in simulation: if moving pawn to empty en_passant target, remove the adjacent pawn
+        if piece.piece_type == PieceType.PAWN and en_passant_target is not None and move == en_passant_target and new_board[move[1]-1][move[0]-1] == "":
+            # Remove the captured pawn which is adjacent on the from-rank
+            adj_x = move[0]-1
+            adj_y = y-1
+            if 0 <= adj_x < 8 and 0 <= adj_y < 8:
+                new_board[adj_y][adj_x] = ""
         new_board[move[1]-1][move[0]-1] = piece_code.upper()  # Place the piece in the new position
         if not is_check(new_board, "white" if color == "black" else "black")[0]:
             
@@ -73,10 +80,10 @@ class BoardPiecesManager:
         pass
 
     def reset(self, show_p=False, flip=False):
-        if show_p: 
+        if show_p:
             self.reset_popup.show()
-
             return
+
         self.layout = [
             ["BR", "BN", "BB", "BQ", "BK", "BB", "BN", "BR"],
             ["BP", "BP", "BP", "BP", "BP", "BP", "BP", "BP"],
@@ -92,7 +99,8 @@ class BoardPiecesManager:
         self.selected_piece = None
         self.selected_possible_moves = []
 
-        if flip: return
+        if flip:
+            return
 
         self.turn = "white"
 
@@ -108,6 +116,9 @@ class BoardPiecesManager:
         self.is_check_mate = False
 
         self.last_moved_pos = None
+
+        # En passant: target square available for en passant capture on the immediate next move
+        self.en_passant_target = None
 
         game_state.reset()
 
@@ -125,7 +136,8 @@ class BoardPiecesManager:
         if not self.is_under_check: return
         for piece in self.pieces:
             if piece[0].piece_color.name.lower() == self.turn:
-                moves = get_possible_positions(piece[0], piece[0].piece_color.name.lower(), self.layout, piece[1], piece[2], False, False, False)
+                ep_target = self.en_passant_target if piece[0].piece_type == PieceType.PAWN else None
+                moves = get_possible_positions(piece[0], piece[0].piece_color.name.lower(), self.layout, piece[1], piece[2], False, False, False, ep_target)
                 if moves: return False
 
         return True
@@ -343,9 +355,9 @@ class BoardPiecesManager:
                     king_moved = self.white_king_moved if piece.piece_color == PieceColor.WHITE else self.black_king_moved
                     rook1_moved = self.white_rook1_moved if piece.piece_color == PieceColor.WHITE else self.black_rook1_moved
                     rook2_moved = self.white_rook2_moved if piece.piece_color == PieceColor.WHITE else self.black_rook2_moved
-                    moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, king_moved, rook1_moved, rook2_moved)
+                    moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, king_moved, rook1_moved, rook2_moved, self.en_passant_target)
                 else:
-                    moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, False, False, False)
+                    moves = get_possible_positions(piece, piece.piece_color.name.lower(), self.layout, x, y, False, False, False, self.en_passant_target if piece.piece_type == PieceType.PAWN else None)
                 self.selected_possible_moves = moves
                 return
             
@@ -396,9 +408,22 @@ class BoardPiecesManager:
 
         for i, (piece, x, y) in enumerate(self.pieces):
             if (x - 1, y - 1) == (from_x, from_y):
+                # Track previous en passant target, and clear for this move unless set again by a double pawn move
+                prev_en_passant = self.en_passant_target
+                self.en_passant_target = None
                 # Check if there is an opponent piece at the destination
                 if self.layout[to_y][to_x] != "":
                     captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))  # Capture piece index
+                else:
+                    # Handle en passant capture: destination empty but equals previous en_passant_target
+                    if piece.piece_type == PieceType.PAWN and prev_en_passant == (to_x + 1, to_y + 1):
+                        if abs(to_x - from_x) == 1:
+                            cap_pos_1b = (to_x + 1, from_y + 1)
+                            cap_index = self._get_piece_index_at_pos(cap_pos_1b)
+                            if cap_index is not None:
+                                # Remove captured pawn from layout and pieces
+                                self.layout[from_y][to_x] = ""
+                                captured_piece_index = cap_index
 
                 # Update the layout for the moved piece
                 self.layout[from_y][from_x] = ""  # Clear the old position
@@ -410,7 +435,7 @@ class BoardPiecesManager:
                 # Move the piece in self.pieces
                 self.pieces[i] = (piece, to_x + 1, to_y + 1)  # Update to new position
 
-                # Set king_moved to True if the piece is a king
+                # Set king_moved to True if the piece is a king and handle castling
                 if piece.piece_type == PieceType.KING:
                     if piece.piece_color == PieceColor.WHITE:
                         self.white_king_moved = True
@@ -462,6 +487,10 @@ class BoardPiecesManager:
                             to_x + 1, 
                             to_y + 1
                         )
+                    # Set en passant target if a pawn moved two squares
+                    if abs(to_y - from_y) == 2:
+                        direction = -1 if piece.piece_color == PieceColor.WHITE else 1
+                        self.en_passant_target = (from_x + 1, from_y + 1 + direction)
 
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
                 if self.player == "black":
@@ -477,7 +506,7 @@ class BoardPiecesManager:
                 self.last_moved_pos = (to_x+1,to_y+1)
                 break
 
-        # Remove the captured piece after the loop (to avoid list modification issues during iteration)
+    # Remove the captured piece after the loop (to avoid list modification issues during iteration)
         if captured_piece_index is not None:
             self.pieces.pop(captured_piece_index)
 

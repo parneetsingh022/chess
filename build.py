@@ -5,11 +5,9 @@ build_notes = {
     "version": version,
     "description": "",
     "features": [
-        "Resize Option: Added option to resize window and choose between small, large and medium sizes",
-        "Last Move: Now a grey box is displayed around the last moved piece to improve experience."
+         "En Passant Move: Added support for en passant capture in pawn movement logic, enhancing gameplay realism",
     ],
     "bug-fix": [
-        "Game crash: Fixed a bug which causes game to crash.",
     ]
 }
 
