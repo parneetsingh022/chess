@@ -71,7 +71,9 @@ clock = pygame.time.Clock()
 
 mouse_button_scroll = 0
 while True:
+    had_event = False
     for event in pygame.event.get():
+        had_event = True
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
@@ -83,11 +85,12 @@ while True:
             elif event.button == 5:  # Mouse wheel down
                 settings_page.set_start_position(-1)
 
-    
-    screen.fill(colors.BACKGROUND_COLOR)
-    screen_manager.display_current_screen(event)
-    # Clear the screen
-    # Update the display
-    pygame.display.update()
+        # Dispatch this event to the current screen so popups receive KEYDOWN
+        screen_manager.display_current_screen(event)
+
+    # If there were no events this frame, still draw/update the current screen
+    if not had_event:
+        screen_manager.display_current_screen(None)
+
     # Control the frame rate
     clock.tick(60)  # Limit to 60 frames per second

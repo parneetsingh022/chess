@@ -51,7 +51,11 @@ class Button:
         pygame.draw.rect(screen, background_color, self.button_rect)
 
     def on_click(self, event: pygame.event.Event, fnc: Callable[[], None]) -> bool:
-        if self.disable: return False
+        if self.disable:
+            return False
+
+        if event is None:
+            return False
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.button_rect.collidepoint(event.pos):

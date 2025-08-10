@@ -16,6 +16,8 @@ class ImageButton:
         screen.blit(self.image, self.rect)
 
     def on_click(self, event: pygame.event.Event, action):
+        if event is None:
+            return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left mouse button
             if self.rect.collidepoint(event.pos):
                 if action:

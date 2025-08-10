@@ -11,6 +11,8 @@ from utils.local_storage.storage import settings_file_manager
 from states.gamestate import game_state
 from components.popup import Popup
 from constants.fonts import CHECK_MATETEXT_MAIN
+from states.gamestate import game_state
+from utils.network.lan import send_move, recv_message
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved, en_passant_target=None):
@@ -120,7 +122,7 @@ class BoardPiecesManager:
         # En passant: target square available for en passant capture on the immediate next move
         self.en_passant_target = None
 
-        game_state.reset()
+    # Don't reset global game state here; menu/start flow controls it.
 
     def _draw_rectangle(self, x, y, color=(105, 176, 50)):
         if self.player == "black":
@@ -333,7 +335,18 @@ class BoardPiecesManager:
                 # If the popup handled the event, skip further processing
                 return
 
-    def select_piece(self, pos):
+        # Poll for incoming network moves if in multiplayer
+        if game_state.multiplayer and game_state.net_socket is not None and not game_state.pop_up_on:
+            msg = recv_message(game_state.net_socket)
+            if msg and msg.get("type") == "move":
+                f = tuple(msg.get("from"))
+                t = tuple(msg.get("to"))
+                # Apply the move directly
+                self.selected_piece = f
+                self.select_piece(f, force=True)
+                self.move_piece(t)
+
+    def select_piece(self, pos, force: bool = False):
         if game_state.pop_up_on: 
             self.selected_piece = None
             return
@@ -347,10 +360,17 @@ class BoardPiecesManager:
         for piece, x, y in self.pieces:
             if (x, y) == pos:
                 self.selected_piece = pos
-                if piece.piece_color.name.lower() != self.turn:
-                    self.selected_piece = None
-                    self.selected_possible_moves = []
-                    return
+                if not force:
+                    # Enforce turn
+                    if piece.piece_color.name.lower() != self.turn:
+                        self.selected_piece = None
+                        self.selected_possible_moves = []
+                        return
+                    # In multiplayer, also restrict to the local player's color
+                    if game_state.multiplayer and game_state.my_color and piece.piece_color.name.lower() != game_state.my_color:
+                        self.selected_piece = None
+                        self.selected_possible_moves = []
+                        return
                 if piece.piece_type == PieceType.KING:
                     king_moved = self.white_king_moved if piece.piece_color == PieceColor.WHITE else self.black_king_moved
                     rook1_moved = self.white_rook1_moved if piece.piece_color == PieceColor.WHITE else self.black_rook1_moved
@@ -374,7 +394,8 @@ class BoardPiecesManager:
 
     def move_piece(self, to_pos):
         
-        if game_state.pop_up_on: return
+        if game_state.pop_up_on:
+            return
         if not self.selected_piece:
             return
 
@@ -400,7 +421,6 @@ class BoardPiecesManager:
 
             if self.layout[to_y][to_x] and self.layout[to_y][to_x][0] == self.layout[from_y][from_x][0]:
                 self.select_piece(to_pos)
-            
             return
 
         game_state.in_game = True
@@ -411,9 +431,10 @@ class BoardPiecesManager:
                 # Track previous en passant target, and clear for this move unless set again by a double pawn move
                 prev_en_passant = self.en_passant_target
                 self.en_passant_target = None
+
                 # Check if there is an opponent piece at the destination
                 if self.layout[to_y][to_x] != "":
-                    captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))  # Capture piece index
+                    captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))
                 else:
                     # Handle en passant capture: destination empty but equals previous en_passant_target
                     if piece.piece_type == PieceType.PAWN and prev_en_passant == (to_x + 1, to_y + 1):
@@ -426,14 +447,14 @@ class BoardPiecesManager:
                                 captured_piece_index = cap_index
 
                 # Update the layout for the moved piece
-                self.layout[from_y][from_x] = ""  # Clear the old position
+                self.layout[from_y][from_x] = ""
                 pname = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
                 if piece.piece_type == PieceType.KNIGHT:
                     pname = f"{piece.piece_color.name[0]}N"
                 self.layout[to_y][to_x] = pname
 
                 # Move the piece in self.pieces
-                self.pieces[i] = (piece, to_x + 1, to_y + 1)  # Update to new position
+                self.pieces[i] = (piece, to_x + 1, to_y + 1)
 
                 # Set king_moved to True if the piece is a king and handle castling
                 if piece.piece_type == PieceType.KING:
@@ -457,9 +478,9 @@ class BoardPiecesManager:
                         rook_piece_index = self._get_piece_index_at_pos((rook_from_x + 1, rook_y + 1))
                         if rook_piece_index is not None:
                             rook_piece, _, _ = self.pieces[rook_piece_index]
-                            self.layout[rook_y][rook_from_x] = ""  # Clear the old rook position
+                            self.layout[rook_y][rook_from_x] = ""
                             self.layout[rook_y][rook_to_x] = f"{rook_piece.piece_color.name[0]}{rook_piece.piece_type.name[0]}"
-                            self.pieces[rook_piece_index] = (rook_piece, rook_to_x + 1, rook_y + 1)  # Update rook position
+                            self.pieces[rook_piece_index] = (rook_piece, rook_to_x + 1, rook_y + 1)
 
                 # Set rook_moved to True if the piece is a rook
                 if piece.piece_type == PieceType.ROOK:
@@ -473,19 +494,18 @@ class BoardPiecesManager:
                             self.black_rook1_moved = True
                         elif from_x == 7 and from_y == 0:
                             self.black_rook2_moved = True
-                
 
                 if piece.piece_type == PieceType.PAWN:
                     prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
-                    
+
                     if ((to_y + 1) == 8 or (to_y + 1) == 1):
                         selected_piece_type = self.handle_promotion_selection((to_x, to_y), piece.piece_color)
                         postfix = selected_piece_type.name[0] if selected_piece_type != PieceType.KNIGHT else "N"
                         self.layout[to_y][to_x] = f"{prefix}{postfix}"
                         self.pieces[i] = (
-                            Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color), 
-                            to_x + 1, 
-                            to_y + 1
+                            Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color),
+                            to_x + 1,
+                            to_y + 1,
                         )
                     # Set en passant target if a pawn moved two squares
                     if abs(to_y - from_y) == 2:
@@ -495,20 +515,26 @@ class BoardPiecesManager:
                 self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
                 if self.player == "black":
                     king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
-                
 
                 if self.is_under_check:
                     game_state.check_position = king_pos_c
                 else:
                     game_state.check_position = None
 
-                self.turn = "white" if self.turn == "black" else "black" 
-                self.last_moved_pos = (to_x+1,to_y+1)
+                self.turn = "white" if self.turn == "black" else "black"
+                self.last_moved_pos = (to_x + 1, to_y + 1)
                 break
 
-    # Remove the captured piece after the loop (to avoid list modification issues during iteration)
+        # Remove the captured piece after the loop (to avoid list modification issues during iteration)
         if captured_piece_index is not None:
             self.pieces.pop(captured_piece_index)
+
+        # Broadcast move over network if in multiplayer and we moved a piece
+        if game_state.multiplayer and game_state.net_socket is not None and from_pos is not None:
+            try:
+                send_move(game_state.net_socket, from_pos, to_pos)
+            except Exception:
+                pass
 
         self.selected_piece = None
         self.selected_possible_moves = []
