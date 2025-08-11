@@ -102,6 +102,7 @@ class MenuPage:
 
         # ── Enforce uniform button width ─────────────────────────
         max_width = max(btn.button_rect.width for btn, _ in self.menu_buttons)
+        max_width = max(max_width, 200)  # Ensure at least 200px width
         for btn, _ in self.menu_buttons:
             btn.button_rect.width = max_width
             btn.text_rect.center = btn.button_rect.center
@@ -123,7 +124,7 @@ class MenuPage:
         # Place each button
         cur_y = start_y
         for btn, _ in self.menu_buttons:
-            btn.set_position(x_center, cur_y, center=True)
+            btn.set_position(x_center-20, cur_y, center=True)
             cur_y += btn.get_button_height() + self.button_padding
 
         # Draw buttons and handle clicks
@@ -136,6 +137,6 @@ class MenuPage:
         last_y   = self.menu_buttons[-1][0].get_end_position()[1]
         mid_y    = (first_y + last_y) // 2
         logo_h   = self.logo_image.get_height()
-        self.screen.blit(self.logo_image, (0, mid_y - logo_h // 2 + 10))
+        self.screen.blit(self.logo_image, (-10, mid_y - logo_h // 2 + 10))
 
         pygame.display.update()
