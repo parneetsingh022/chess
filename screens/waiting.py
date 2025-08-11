@@ -55,3 +55,7 @@ class WaitingPage:
         game_state.advertise_socket = None
         game_state.host_stop_event = None
         self.screen_manager.set_screen("menu")
+
+    def update_screen_reference(self, new_screen):
+        """Update screen reference when window is resized"""
+        self.screen = new_screen

@@ -64,7 +64,7 @@ general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_at
 general.add_sub_layout('Default Player', LayoutType.LayoutOption, target_atrb='default_player', options=['white', 'black'])
 
 display = root_layout.add_sub_layout('Display', LayoutType.LayoutCategory)
-display.add_sub_layout('Window Size', LayoutType.LayoutOptionRestartRequired, target_atrb='win_size',options=['medium', 'large', 'small'])
+display.add_sub_layout('Window Size', LayoutType.LayoutOption, target_atrb='win_size',options=['medium', 'large', 'small'])
 
 
 #root_layout.add_sub_layout('Theme', LayoutType.LayoutCategory)

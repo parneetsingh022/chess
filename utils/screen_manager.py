@@ -18,3 +18,16 @@ class ScreenManager:
 
     def get_screen(self):
         return self.current_screen_name
+    
+    def update_screen_reference(self, new_screen):
+        """Update screen reference for all screens when window is resized"""
+        self.screen = new_screen
+        
+        # Update screen reference for all registered screens
+        for screen_obj in self.screens.values():
+            if hasattr(screen_obj, 'screen'):
+                screen_obj.screen = new_screen
+                
+                # Update any nested components that might have screen references
+                if hasattr(screen_obj, 'update_screen_reference'):
+                    screen_obj.update_screen_reference(new_screen)

@@ -125,3 +125,13 @@ class BoardPage:
                     self.board_pieces_manager.move_piece(square_pos)
                 else:
                     self.board_pieces_manager.select_piece(square_pos)
+
+    def update_screen_reference(self, new_screen):
+        """Update screen reference when window is resized"""
+        self.screen = new_screen
+        # Update chess board manager with new screen
+        if hasattr(self.chess_board_manager, 'screen'):
+            self.chess_board_manager.screen = new_screen
+        # Update board pieces manager with new screen
+        if hasattr(self.board_pieces_manager, 'screen'):
+            self.board_pieces_manager.screen = new_screen

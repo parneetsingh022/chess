@@ -131,3 +131,9 @@ class MultiplayerPage:
         # Clear any previous host cancellation event
         game_state.host_stop_event = None
         self.screen_manager.set_screen("board_page")
+
+    def update_screen_reference(self, new_screen):
+        """Update screen reference when window is resized"""
+        self.screen = new_screen
+        if self.input_popup:
+            self.input_popup.screen = new_screen
