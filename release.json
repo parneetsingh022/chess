@@ -1,11 +1,13 @@
 {
-    "version": "v0.3.0-beta.3",
-    "description": "",
+    "version": "v0.4.0-beta.1",
+    "description": "LAN multiplayer with host/join by code, consented reset flow, board flip for black, and stability fixes.",
     "features": [
-        "Resize Option: Added option to resize window and choose between small, large and medium sizes",
-        "Last Move: Now a grey box is displayed around the last moved piece to improve experience."
+        "Multiplayer: Host a game with a code on LAN and join by code; auto-discovery via UDP and TCP session.",
+        "Multiplayer UX: Single Multiplayer menu with a dedicated Host/Join screen and a Waiting Room showing the room code.",
+        "Random Colors: Colors are assigned randomly on connect; board flips automatically for black.",
+        "Move Relay: Reliable move synchronization between peers over the LAN session.",
+        "Consented Reset: Reset now requires opponent approval (request/accept/reject) with popups and a waiting indicator.",
+        "En Passant: Added support for en passant capture in pawn movement logic."
     ],
-    "bug-fix": [
-        "Game crash: Fixed a bug which causes game to crash."
-    ]
+    "bug-fix": []
 }

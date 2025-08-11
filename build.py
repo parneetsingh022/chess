@@ -3,11 +3,17 @@ from constants.version import version
 
 build_notes = {
     "version": version,
-    "description": "",
+    "description": "LAN multiplayer with host/join by code, consented reset flow, board flip for black, and stability fixes.",
     "features": [
-         "En Passant Move: Added support for en passant capture in pawn movement logic, enhancing gameplay realism.",
+         "Multiplayer: Host a game with a code on LAN and join by code; auto-discovery via UDP and TCP session.",
+         "Multiplayer UX: Single Multiplayer menu with a dedicated Host/Join screen and a Waiting Room showing the room code.",
+         "Random Colors: Colors are assigned randomly on connect; board flips automatically for black.",
+         "Move Relay: Reliable move synchronization between peers over the LAN session.",
+         "Consented Reset: Reset now requires opponent approval (request/accept/reject) with popups and a waiting indicator.",
+         "En Passant: Added support for en passant capture in pawn movement logic.",
     ],
     "bug-fix": [
+
     ]
 }
 
