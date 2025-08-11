@@ -25,8 +25,10 @@ class Button:
         self._ripple_active = False
         self._ripple_center = (0, 0)
         self._ripple_radius = 0.0
-        self._ripple_start_tick = 0
-        self._ripple_max_radius = 0
+        self._ripple_max_radius = 0.0
+        self._ripple_duration = 0.8  # seconds for ripple to expand
+        self._ripple_speed = 0.0     # will be computed on start
+        self._max_alpha = 80         # peak alpha of ripple
 
         self.update_text(text)
 
@@ -70,24 +72,24 @@ class Button:
 
         self._was_hovered = hovered
 
+        # Draw button background & border
         if self.border:
             self._draw_button(screen)
 
+        # Draw text
         screen.blit(self.text, self.text_rect)
 
+        # Draw ripple on top
         if self.border and self._ripple_active:
             self._draw_ripple(screen, dt)
 
     def _draw_button(self, screen: pygame.Surface):
         rect = self.button_rect
-
         if self._hover_started and not self._hover_fade_done:
-            bg_color = (230, 230, 255)  # Initial hover color (light blue)
+            bg_color = (230, 230, 255)
         else:
-            bg_color = (255, 255, 255)  # White after ripple
-
+            bg_color = (255, 255, 255)
         pygame.draw.rect(screen, bg_color, rect, border_radius=self._radius)
-
         border_color = (180, 200, 255) if self._hover_started else (240, 240, 240)
         pygame.draw.rect(screen, border_color, rect, width=1, border_radius=self._radius)
 
@@ -95,45 +97,45 @@ class Button:
         self._ripple_active = True
         self._ripple_center = mouse_pos
         self._ripple_radius = 0.0
-        self._ripple_start_tick = pygame.time.get_ticks()
 
-        dx = max(abs(mouse_pos[0] - self.button_rect.left), abs(mouse_pos[0] - self.button_rect.right))
-        dy = max(abs(mouse_pos[1] - self.button_rect.top), abs(mouse_pos[1] - self.button_rect.bottom))
-        self._ripple_max_radius = (dx**2 + dy**2)**0.5
+        dx = max(abs(mouse_pos[0] - self.button_rect.left),
+                 abs(mouse_pos[0] - self.button_rect.right))
+        dy = max(abs(mouse_pos[1] - self.button_rect.top),
+                 abs(mouse_pos[1] - self.button_rect.bottom))
+        self._ripple_max_radius = (dx**2 + dy**2) ** 0.5
+
+        # compute speed so it finishes in _ripple_duration
+        self._ripple_speed = self._ripple_max_radius / self._ripple_duration
 
     def _draw_ripple(self, screen: pygame.Surface, dt: float):
-        elapsed = (pygame.time.get_ticks() - self._ripple_start_tick) / 1000.0
-        speed = self._ripple_max_radius * 3.0
-        self._ripple_radius = elapsed * speed
+        # advance radius by dt-based speed
+        self._ripple_radius += dt * self._ripple_speed
 
-        if self._ripple_radius > self._ripple_max_radius:
+        # finish ripple when max reached
+        if self._ripple_radius >= self._ripple_max_radius:
             self._ripple_active = False
             self._hover_fade_done = True
             return
 
         progress = self._ripple_radius / self._ripple_max_radius
-        ripple_alpha = int(60 * (1.0 - progress * progress))
-
+        ripple_alpha = int(self._max_alpha * (1 - progress**2))
         if ripple_alpha <= 0:
             self._ripple_active = False
             self._hover_fade_done = True
             return
 
-        ripple_surf = pygame.Surface((self.button_rect.w, self.button_rect.h), pygame.SRCALPHA)
+        # draw on temporary surface
+        w, h = self.button_rect.size
+        ripple_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        local_center = (self._ripple_center[0] - self.button_rect.x,
+                        self._ripple_center[1] - self.button_rect.y)
+        pygame.draw.circle(ripple_surf,
+                           (120, 180, 255, ripple_alpha),
+                           local_center,
+                           int(self._ripple_radius))
 
-        local_center = (
-            self._ripple_center[0] - self.button_rect.x,
-            self._ripple_center[1] - self.button_rect.y
-        )
-
-        pygame.draw.circle(
-            ripple_surf,
-            (120, 180, 255, ripple_alpha),
-            local_center,
-            int(self._ripple_radius)
-        )
-
-        mask = pygame.Surface((self.button_rect.w, self.button_rect.h), pygame.SRCALPHA)
+        # mask to keep ripple within rounded rect
+        mask = pygame.Surface((w, h), pygame.SRCALPHA)
         pygame.draw.rect(mask, (255, 255, 255, 255), mask.get_rect(), border_radius=self._radius)
         ripple_surf.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
 
@@ -145,20 +147,15 @@ class Button:
     def on_click(self, event: pygame.event.Event, fnc: Callable[[], None]) -> bool:
         if self.disable or event is None:
             return False
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and self.button_rect.collidepoint(event.pos):
+            self.is_pressed = True
+            if self.border:
+                self._start_ripple(event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP and self.is_pressed:
             if self.button_rect.collidepoint(event.pos):
-                self.is_pressed = True
-                if self.border:
-                    self._start_ripple(event.pos)
-
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if self.is_pressed:
-                if self.button_rect.collidepoint(event.pos):
-                    fnc()
-                self.is_pressed = False
-                return True
-
+                fnc()
+            self.is_pressed = False
+            return True
         return False
 
     def disable_button(self):
