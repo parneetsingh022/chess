@@ -2,6 +2,7 @@ import socket
 import json
 import random
 from typing import Optional, Tuple
+import threading
 
 
 BROADCAST_PORT = 54000
@@ -43,31 +44,53 @@ def advertise_tick(sock: socket.socket, room_code: str):
         pass
 
 
-def host_wait_for_connection(room_code: str) -> Tuple[socket.socket, Tuple[str, int], str]:
+def host_wait_for_connection(room_code: str, stop_event: Optional[threading.Event] = None) -> Optional[Tuple[socket.socket, Tuple[str, int], str]]:
+    """Start a TCP server and wait for a single client to join with the given code.
+    If stop_event is set during wait, closes the server and returns None.
+    """
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("", TCP_PORT))
-    srv.listen(1)
-    while True:
-        conn, addr = srv.accept()
-        try:
-            raw = conn.recv(BUFFER_SIZE)
-            hello = json.loads(raw.decode())
-            if hello.get("type") == "join" and hello.get("code") == room_code:
-                conn.send(json.dumps({"type": "ok"}).encode())
-                # Randomly assign host/client colors
-                host_color = random.choice(["white", "black"])
-                client_color = "black" if host_color == "white" else "white"
-                # Inform client of their color
+    try:
+        srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        srv.bind(("", TCP_PORT))
+        srv.listen(1)
+        srv.settimeout(0.3)
+        while True:
+            if stop_event is not None and stop_event.is_set():
+                break
+            try:
+                conn, addr = srv.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                # Socket likely closed
+                break
+            try:
+                raw = conn.recv(BUFFER_SIZE)
+                hello = json.loads(raw.decode())
+                if hello.get("type") == "join" and hello.get("code") == room_code:
+                    conn.send(json.dumps({"type": "ok"}).encode())
+                    # Randomly assign host/client colors
+                    host_color = random.choice(["white", "black"])
+                    client_color = "black" if host_color == "white" else "white"
+                    # Inform client of their color
+                    try:
+                        conn.send(json.dumps({"type": "start", "your_color": client_color}).encode())
+                    except Exception:
+                        pass
+                    return conn, addr, host_color
+                else:
+                    conn.close()
+            except Exception:
                 try:
-                    conn.send(json.dumps({"type": "start", "your_color": client_color}).encode())
+                    conn.close()
                 except Exception:
                     pass
-                return conn, addr, host_color
-            else:
-                conn.close()
+    finally:
+        try:
+            srv.close()
         except Exception:
-            conn.close()
+            pass
+    return None
 
 
 def client_find_host(timeout: float = 2.0) -> Optional[Tuple[str, int, str]]:

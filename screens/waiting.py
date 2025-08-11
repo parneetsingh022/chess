@@ -40,6 +40,11 @@ class WaitingPage:
     def _cancel(self):
         # Stop hosting and return to menu
         try:
+            if getattr(game_state, 'host_stop_event', None):
+                try:
+                    game_state.host_stop_event.set()
+                except Exception:
+                    pass
             if game_state.advertise_socket:
                 game_state.advertise_socket.close()
         except Exception:
@@ -48,4 +53,5 @@ class WaitingPage:
         game_state.room_code = None
         game_state.is_host = False
         game_state.advertise_socket = None
+        game_state.host_stop_event = None
         self.screen_manager.set_screen("menu")

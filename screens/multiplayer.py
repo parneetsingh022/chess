@@ -1,5 +1,6 @@
 import pygame
 import threading
+import threading
 from constants import colors
 from components.buttons.button import Button
 from components.input_popup import InputPopup
@@ -56,22 +57,26 @@ class MultiplayerPage:
         game_state.is_host = True
         game_state.room_code = code
         game_state.advertise_socket = host_advertise(code)
+        # Create a stop event so we can cancel hosting cleanly
+        game_state.host_stop_event = threading.Event()
 
         def accept_thread():
-            result = host_wait_for_connection(code)
+            result = host_wait_for_connection(code, stop_event=game_state.host_stop_event)
             if isinstance(result, tuple) and len(result) == 3:
                 conn, _, host_color = result
             else:
-                conn, _ = result
-                host_color = 'white'
+                # Cancelled or failed
+                conn = None
+                host_color = None
             game_state.net_socket = conn
-            try:
-                game_state.net_socket.setblocking(False)
-            except Exception:
-                pass
-            game_state.my_color = host_color
-            # Start game when client connects
-            self._start_game()
+            if conn:
+                try:
+                    game_state.net_socket.setblocking(False)
+                except Exception:
+                    pass
+                game_state.my_color = host_color
+                # Start game when client connects
+                self._start_game()
 
         threading.Thread(target=accept_thread, daemon=True).start()
         # Navigate to the waiting room
@@ -116,4 +121,13 @@ class MultiplayerPage:
     def _start_game(self):
         game_state.start_new = True
         game_state.in_game = False
+        # Stop advertising if we are the host
+        try:
+            if game_state.is_host and game_state.advertise_socket:
+                game_state.advertise_socket.close()
+        except Exception:
+            pass
+        game_state.advertise_socket = None
+        # Clear any previous host cancellation event
+        game_state.host_stop_event = None
         self.screen_manager.set_screen("board_page")
