@@ -1,5 +1,6 @@
 import socket
 import json
+import random
 from typing import Optional, Tuple
 
 
@@ -42,7 +43,7 @@ def advertise_tick(sock: socket.socket, room_code: str):
         pass
 
 
-def host_wait_for_connection(room_code: str) -> Tuple[socket.socket, Tuple[str, int]]:
+def host_wait_for_connection(room_code: str) -> Tuple[socket.socket, Tuple[str, int], str]:
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind(("", TCP_PORT))
@@ -54,7 +55,15 @@ def host_wait_for_connection(room_code: str) -> Tuple[socket.socket, Tuple[str, 
             hello = json.loads(raw.decode())
             if hello.get("type") == "join" and hello.get("code") == room_code:
                 conn.send(json.dumps({"type": "ok"}).encode())
-                return conn, addr
+                # Randomly assign host/client colors
+                host_color = random.choice(["white", "black"])
+                client_color = "black" if host_color == "white" else "white"
+                # Inform client of their color
+                try:
+                    conn.send(json.dumps({"type": "start", "your_color": client_color}).encode())
+                except Exception:
+                    pass
+                return conn, addr, host_color
             else:
                 conn.close()
         except Exception:
@@ -78,14 +87,26 @@ def client_find_host(timeout: float = 2.0) -> Optional[Tuple[str, int, str]]:
         sock.close()
 
 
-def client_connect(ip: str, port: int, room_code: str) -> Optional[socket.socket]:
+def client_connect(ip: str, port: int, room_code: str) -> Optional[Tuple[socket.socket, Optional[str]]]:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect((ip, port))
         s.send(json.dumps({"type": "join", "code": room_code}).encode())
         resp = json.loads(s.recv(BUFFER_SIZE).decode())
         if resp.get("type") == "ok":
-            return s
+            # Expect a start message with assigned color
+            try:
+                s.settimeout(3.0)
+                start_msg = json.loads(s.recv(BUFFER_SIZE).decode())
+                your_color = start_msg.get("your_color") if start_msg.get("type") == "start" else None
+            except Exception:
+                your_color = None
+            finally:
+                try:
+                    s.settimeout(None)
+                except Exception:
+                    pass
+            return s, your_color
     except Exception:
         s.close()
         return None

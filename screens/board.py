@@ -70,6 +70,15 @@ class BoardPage:
         self.last_check_pos = None
 
     def display(self, event: pygame.event.Event) -> None:
+        # Ensure board orientation matches assigned color in multiplayer
+        if game_state.multiplayer and game_state.my_color:
+            desired = game_state.my_color
+            if self.chess_board_manager.player != desired:
+                self.chess_board_manager.player = desired
+                self.board_pieces_manager.player = desired
+                # Re-render pieces with new perspective but keep layout
+                self.board_pieces_manager.reset(flip=True)
+
         if self.last_check_pos != game_state.check_position:
             self.chess_board_manager.unset_color_red()
             self.last_check_pos = game_state.check_position

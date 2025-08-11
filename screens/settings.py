@@ -51,6 +51,8 @@ class ScrollBar:
         pygame.draw.circle(self.screen, colors.BLACK_COLOR, (self.x + self.width // 2, self.scroll_y + self.scroll_height), self.width // 2)
 
     def on_click(self, event: pygame.event.Event):
+        if event is None:
+            return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if pygame.Rect(self.x, self.scroll_y, self.width, self.scroll_height).collidepoint(event.pos):
                 self.dragging = True
@@ -181,10 +183,10 @@ class SettingsPage:
             pygame.time.set_timer(pygame.USEREVENT, 100)
 
     def display(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.USEREVENT:
+        if event and event.type == pygame.USEREVENT:
             self.navigation_in_progress = False
             pygame.time.set_timer(pygame.USEREVENT, 0)
-        
+
         self.screen.fill(colors.BACKGROUND_COLOR)
 
         # Render and display the title
@@ -205,14 +207,15 @@ class SettingsPage:
             card.set_position(self.card_padding, self.start_position + 80 + i * 65)
             card.display(self.screen)
 
-            if card_type == LayoutType.LayoutCategory.value:
-                clicked = card.on_click(event, layout_manager)
-                if clicked:
-                    self._init_layout()
-            elif card_type == LayoutType.LayoutToggle.value:
-                card.on_click(event)
-            elif card_type == LayoutType.LayoutOption.value or card_type == LayoutType.LayoutOptionRestartRequired.value:
-                card.on_click(event)
+            if event:
+                if card_type == LayoutType.LayoutCategory.value:
+                    clicked = card.on_click(event, layout_manager)
+                    if clicked:
+                        self._init_layout()
+                elif card_type == LayoutType.LayoutToggle.value:
+                    card.on_click(event)
+                elif card_type == LayoutType.LayoutOption.value or card_type == LayoutType.LayoutOptionRestartRequired.value:
+                    card.on_click(event)
             
             
 
@@ -227,6 +230,7 @@ class SettingsPage:
         # Display the scroll bar if there are items to scroll
         if total_cards_height > self.screen.get_height():
             self.scroll_bar.display()
-            self.scroll_bar.on_click(event)
+            if event:
+                self.scroll_bar.on_click(event)
 
         pygame.display.update()
