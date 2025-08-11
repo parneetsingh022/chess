@@ -5,6 +5,7 @@ from utils.screen_manager import ScreenManager
 from utils.chess_board_manager import ChessBoardManager
 from utils.board_pieces_manager import BoardPiecesManager
 from utils.arrow_manager import ArrowManager
+from utils.highlight_manager import HighlightManager
 
 from components.image_button import ImageButton, BackButton, SettingsButton, RestartButton
 from enum import Enum
@@ -34,19 +35,23 @@ def restart_button_action(board_pieces_manager: BoardPiecesManager):
     board_pieces_manager.reset(show_p=True)
 
 class BoardPage:
-
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager, board_top_bar_height: int):
         self.screen = screen
         self.board_top_bar_height = board_top_bar_height
         self.screen_manager = screen_manager
         self.chess_board_manager = ChessBoardManager(screen, screen.get_width(), self.board_top_bar_height)
-        self.board_pieces_manager = BoardPiecesManager(screen, self.chess_board_manager._square_size, self.chess_board_manager.player, self.board_top_bar_height)
+        self.board_pieces_manager = BoardPiecesManager(
+            screen, self.chess_board_manager._square_size, self.chess_board_manager.player, self.board_top_bar_height
+        )
         self.arrow_manager = ArrowManager(self.chess_board_manager)
-        
+        self.highlight_manager = HighlightManager(self.chess_board_manager)
+
+        self._last_right_click_ms = 0
+        self._double_click_threshold_ms = 350
+
         self.mouse_down = False
         self.left_mouse_down = False
         self.right_mouse_down = False
-
 
         self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
         self.restart_button = TopBarButtonItem(RestartButton, lambda: restart_button_action(self.board_pieces_manager), TopBarButtonType.LEFTBUTTON)
@@ -100,11 +105,8 @@ class BoardPage:
             square_pos = self.chess_board_manager.get_square_loc(*event.pos)
             if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8:
                 self.arrow_manager.update_hover_square(square_pos)
-            else:
-                # Don't clear on invalid to avoid flicker; just ignore
-                pass
 
-    # Apply debounce/timing for hover squares every frame
+        # Apply debounce/timing for hover squares every frame
         self.arrow_manager.tick()
 
         # Fill screen and draw all components
@@ -126,6 +128,8 @@ class BoardPage:
 
         self.chess_board_manager.draw_board(black_color, white_color)
         self.board_pieces_manager.display()
+        # Draw square highlights above pieces
+        self.highlight_manager.draw_highlights(self.screen)
         
         # Draw arrows after the board and pieces
         self.arrow_manager.draw_arrows(self.screen)
@@ -139,14 +143,29 @@ class BoardPage:
                     if not self.left_mouse_down:
                         self.left_mouse_down = True
                         self.mouse_down = True
-                        # Clear arrows on left-click (per requirement)
+                        # Clear arrows and highlights on left-click (per requirement)
                         self.arrow_manager.clear_arrows()
+                        self.highlight_manager.clear_highlights()
                 elif event.button == 3:  # Right mouse button
                     if not self.right_mouse_down:
                         self.right_mouse_down = True
                         x, y = event.pos
                         square_pos = self.chess_board_manager.get_square_loc(x, y)
-                        self.arrow_manager.start_drawing_arrow(square_pos)
+                        # Detect double right-click for highlight toggle
+                        now_ms = pygame.time.get_ticks()
+                        if now_ms - self._last_right_click_ms <= self._double_click_threshold_ms:
+                            # Double-click detected: toggle highlight on this square if a piece exists here
+                            if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8:
+                                lx, ly = square_pos[0] - 1, square_pos[1] - 1
+                                if 0 <= ly < len(self.board_pieces_manager.layout) and 0 <= lx < len(self.board_pieces_manager.layout[0]):
+                                    if self.board_pieces_manager.layout[ly][lx] != "":
+                                        self.highlight_manager.toggle_highlight(square_pos)
+                            # Prevent treating this as start of arrow drawing
+                            self.arrow_manager.cancel_drawing()
+                        else:
+                            # Start arrow drawing on single right-click
+                            self.arrow_manager.start_drawing_arrow(square_pos)
+                        self._last_right_click_ms = now_ms
                         
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
@@ -176,6 +195,8 @@ class BoardPage:
                 if event.key == pygame.K_ESCAPE:
                     # Clear all arrows on Escape key
                     self.arrow_manager.clear_arrows()
+                    self.highlight_manager.clear_highlights()
                 elif event.key == pygame.K_c:
                     # Clear all arrows on C key (alternative)
                     self.arrow_manager.clear_arrows()
+                    self.highlight_manager.clear_highlights()

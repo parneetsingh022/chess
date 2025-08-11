@@ -13,13 +13,10 @@ build_notes = {
         "En Passant: Added support for en passant capture in pawn movement logic.",
         "UX Improvement: Enhanced main menu buttons with animation and better look.",
         "Board Annotations: Right-click and drag to draw arrows (straight, diagonal, and knight L). Multiple arrows supported and orientation-aware.",
-        "Input Change: Left-click only for selecting/moving pieces. Left-click clears all arrows; Esc/C also clear arrows.",
-        "Arrow Rendering: Smooth, flicker-free previews with debounced hover and improved layering; clean arrowheads and rounded caps; seamless L-turn corners."
+        "Sounds: Added sound effects for piece movement, captures, and check notifications."
     ],
     "bug-fix": [
-        "Eliminated arrow flicker by drawing arrows after board/pieces and updating the screen once per frame.",
-        "Fixed arrowhead alignment to prevent a line protruding past the triangle tip.",
-        "Smoothed L-turn arrows to avoid visible gaps at the corner."
+
     ]
 }
 
