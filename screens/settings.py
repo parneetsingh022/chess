@@ -7,7 +7,6 @@ from components.settings.settings_card import (
     SettingsTextCard, 
     SettingsOptionCard
 )
-from components.settings.toggle_button import ToggleButton
 from constants import fonts
 from components.image_button import BackButton
 from components.settings.layout.layout import layout_manager, LayoutType
@@ -98,33 +97,6 @@ class SettingsPage:
 
         # Initialize scroll bar
         self.scroll_bar = ScrollBar(self.screen, self.screen.get_height() - 20, self)
-
-    def update_screen_reference(self, new_screen):
-        """Update screen reference and recalculate layout when window is resized"""
-        self.screen = new_screen
-        
-        # Update card width based on new screen size
-        self.card_width = self.screen.get_width() - (self.card_padding * 2)
-        
-        # Update scroll bar for new screen height
-        self.scroll_bar.screen = new_screen
-        self.scroll_bar.height = new_screen.get_height() - 20
-        
-        # Update all settings cards with new width
-        for card, card_type in self.settings_cards:
-            if hasattr(card, 'image'):
-                # Recreate the card surface with new width
-                card.image = pygame.Surface((self.card_width, card.rect.height), pygame.SRCALPHA)
-                card.rect = card.image.get_rect()
-                
-                # Update toggle button position for toggle cards
-                if hasattr(card, 'toggle_button'):
-                    card.toggle_button = ToggleButton(
-                        card.image, 
-                        self.card_width - 50 - 10, 
-                        (card.rect.height - 50) // 2, 
-                        size=(50, 50)
-                    )
 
     def _reset_start_position(self) -> None:
         self.start_position = 20

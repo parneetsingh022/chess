@@ -13,6 +13,7 @@ from components.popup import Popup
 from constants.fonts import CHECK_MATETEXT_MAIN
 from states.gamestate import game_state
 from utils.network.lan import send_move, recv_message, send_reset, send_reset_request, send_reset_accept, send_reset_reject
+from utils.sound_manager import get_sound_manager
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved, en_passant_target=None):
@@ -346,8 +347,7 @@ class BoardPiecesManager:
         self.reset_rejected_popup.draw()
         self.reset_waiting_popup.draw()
 
-        # Update the display once after all drawing operations
-        pygame.display.flip()
+    # Do not flip here; the screen will be updated once per frame by the parent screen
 
         # Handle the event
         if self.event:
@@ -578,6 +578,13 @@ class BoardPiecesManager:
                 else:
                     game_state.check_position = None
 
+                # Play sounds: capture vs move
+                sm = get_sound_manager()
+                if captured_piece_index is not None:
+                    sm.play_capture()
+                else:
+                    sm.play_move()
+
                 self.turn = "white" if self.turn == "black" else "black"
                 self.last_moved_pos = (to_x + 1, to_y + 1)
                 break
@@ -592,6 +599,14 @@ class BoardPiecesManager:
                 send_move(game_state.net_socket, from_pos, to_pos)
             except Exception:
                 pass
+
+        # After move, if opponent king is in check, play check sound
+        try:
+            sm = get_sound_manager()
+            if game_state.check_position is not None:
+                sm.play_check()
+        except Exception:
+            pass
 
         self.selected_piece = None
         self.selected_possible_moves = []

@@ -140,7 +140,3 @@ class MenuPage:
         self.screen.blit(self.logo_image, (-10, mid_y - logo_h // 2 + 10))
 
         pygame.display.update()
-
-    def update_screen_reference(self, new_screen):
-        """Update screen reference when window is resized"""
-        self.screen = new_screen

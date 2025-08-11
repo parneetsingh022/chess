@@ -10,9 +10,9 @@ from screens.waiting import WaitingPage
 from screens.multiplayer import MultiplayerPage
 
 from utils import screen_manager
-from utils.window_manager import window_manager
 from utils.board_theme_reader import ThemeReader
 from utils.resource_path import resource_path
+from utils.local_storage.storage import settings_file_manager
 
 # Determine the base directory and append it to sys.path
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,9 +24,22 @@ pygame.init()
 
 BOARD_TOP_BAR_HEIGHT = 50
 
-# Initialize window manager and create screen
-window_manager.board_top_bar_height = BOARD_TOP_BAR_HEIGHT
-screen = window_manager.initialize_screen()
+SIZE_SMALL = (450, 450 + BOARD_TOP_BAR_HEIGHT)
+SIZE_MEDIUM = (650, 650 + BOARD_TOP_BAR_HEIGHT)
+SIZE_LARGE = (850, 850 + BOARD_TOP_BAR_HEIGHT)
+
+size_from_settings = settings_file_manager.get_setting('win_size')
+cur_size = SIZE_MEDIUM
+if size_from_settings == 'small':
+    cur_size = SIZE_SMALL
+elif size_from_settings == 'large':
+    cur_size = SIZE_LARGE
+elif size_from_settings == 'medium':
+    cur_size = SIZE_MEDIUM
+
+
+# Set up the screen with double buffering
+screen = pygame.display.set_mode(cur_size, pygame.DOUBLEBUF)
 pygame.display.set_caption("Chess")
 
 # Load and set the icon
@@ -35,12 +48,13 @@ icon = pygame.image.load(icon_path)
 pygame.display.set_icon(icon)
 
 
+WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+
 current_screen = "menu"
 
 screen_manager = screen_manager.ScreenManager(screen)
-
-# Set window manager reference to screen manager
-window_manager.set_screen_manager(screen_manager)
 
 # Create screens and add them to the ScreenManager
 menu_page = MenuPage(screen, screen_manager)
@@ -63,9 +77,6 @@ clock = pygame.time.Clock()
 
 mouse_button_scroll = 0
 while True:
-    # Check for window size changes and apply them instantly
-    window_manager.check_and_apply_size_change()
-    
     had_event = False
     for event in pygame.event.get():
         had_event = True
