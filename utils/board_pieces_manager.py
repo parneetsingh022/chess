@@ -12,7 +12,7 @@ from states.gamestate import game_state
 from components.popup import Popup
 from constants.fonts import CHECK_MATETEXT_MAIN
 from states.gamestate import game_state
-from utils.network.lan import send_move, recv_message
+from utils.network.lan import send_move, recv_message, send_reset, send_reset_request, send_reset_accept, send_reset_reject
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved, en_passant_target=None):
@@ -64,7 +64,12 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
-        self.reset_popup = Popup(screen, "Are you sure you want to reset the game?", button_type="yesno", callbacks={"yes": self.reset_popup_yes, "no": self.reset_popup_no})
+        self.reset_popup = Popup(self.screen, "Are you sure you want to reset the game?", button_type="yesno", callbacks={"yes": self.reset_popup_yes, "no": self.reset_popup_no})
+        # Multiplayer-specific popups
+        self.reset_confirm_popup = Popup(self.screen, "Opponent wants to reset. Do you agree?", button_type="yesno", callbacks={"yes": self._reset_confirm_yes, "no": self._reset_confirm_no})
+        self.reset_rejected_popup = Popup(self.screen, "Opponent rejected the reset.", button_type="ok", callbacks={"ok": lambda: None})
+        # Waiting indicator popup (non-interactive)
+        self.reset_waiting_popup = Popup(self.screen, "Waiting for opponent approval...", button_type="none")
         self.reset()
 
         self.event = None
@@ -75,8 +80,16 @@ class BoardPiecesManager:
         self.event = event  
 
     def reset_popup_yes(self):
+        # In multiplayer, request consent first; in single player, reset immediately
+        if game_state.multiplayer and game_state.net_socket is not None:
+            send_reset_request(game_state.net_socket)
+            # Show waiting indicator until peer responds
+            self.reset_waiting_popup.show()
+            # Keep popup visible state blocked until response comes
+            return
         game_state.in_game = False
         self.reset()
+        game_state.check_position = None
 
     def reset_popup_no(self):
         pass
@@ -323,28 +336,72 @@ class BoardPiecesManager:
                 self._draw_circle(move[0], move[1])
 
 
-        if self.is_check_mate: self._draw_checkmate_popup()
+        if self.is_check_mate:
+            self._draw_checkmate_popup()
+
+        # Draw popups (render only; event handling below)
         self.reset_popup.draw()
-        
+        # Multiplayer consent flow popups
+        self.reset_confirm_popup.draw()
+        self.reset_rejected_popup.draw()
+        self.reset_waiting_popup.draw()
+
         # Update the display once after all drawing operations
         pygame.display.flip()
 
         # Handle the event
         if self.event:
+            # Handle any visible popup events first
             if self.reset_popup.handle_event(self.event):
-                # If the popup handled the event, skip further processing
+                return
+            if self.reset_confirm_popup.handle_event(self.event):
+                return
+            if self.reset_rejected_popup.handle_event(self.event):
                 return
 
         # Poll for incoming network moves if in multiplayer
-        if game_state.multiplayer and game_state.net_socket is not None and not game_state.pop_up_on:
+        if game_state.multiplayer and game_state.net_socket is not None:
             msg = recv_message(game_state.net_socket)
-            if msg and msg.get("type") == "move":
-                f = tuple(msg.get("from"))
-                t = tuple(msg.get("to"))
-                # Apply the move directly
-                self.selected_piece = f
-                self.select_piece(f, force=True)
-                self.move_piece(t)
+            if msg:
+                if msg.get("type") == "move":
+                    f = tuple(msg.get("from"))
+                    t = tuple(msg.get("to"))
+                    # Apply the move directly
+                    self.selected_piece = f
+                    self.select_piece(f, force=True)
+                    self.move_piece(t)
+                elif msg.get("type") == "reset":
+                    # Legacy immediate reset (keep for compatibility)
+                    game_state.in_game = False
+                    game_state.check_position = None
+                    self.reset()
+                elif msg.get("type") == "reset_request":
+                    # Show confirm popup to this player
+                    self.reset_confirm_popup.show()
+                elif msg.get("type") == "reset_accept":
+                    # Peer accepted; perform reset locally
+                    # Hide any waiting indicator
+                    self.reset_waiting_popup.hide()
+                    game_state.in_game = False
+                    game_state.check_position = None
+                    self.reset()
+                elif msg.get("type") == "reset_reject":
+                    # Peer rejected; inform the requester
+                    self.reset_waiting_popup.hide()
+                    self.reset_rejected_popup.show()
+
+    def _reset_confirm_yes(self):
+        # Send acceptance and reset locally
+        if game_state.multiplayer and game_state.net_socket is not None:
+            send_reset_accept(game_state.net_socket)
+        game_state.in_game = False
+        game_state.check_position = None
+        self.reset()
+
+    def _reset_confirm_no(self):
+        # Send rejection only
+        if game_state.multiplayer and game_state.net_socket is not None:
+            send_reset_reject(game_state.net_socket)
 
     def select_piece(self, pos, force: bool = False):
         if game_state.pop_up_on: 

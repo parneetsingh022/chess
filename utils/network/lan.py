@@ -152,3 +152,35 @@ def recv_message(sock: socket.socket) -> Optional[dict]:
         return json.loads(data.decode())
     except Exception:
         return None
+
+
+def send_reset(sock: socket.socket):
+    try:
+        payload = json.dumps({"type": "reset"}).encode()
+        sock.send(payload)
+    except Exception:
+        pass
+
+
+def send_reset_request(sock: socket.socket):
+    try:
+        payload = json.dumps({"type": "reset_request"}).encode()
+        sock.send(payload)
+    except Exception:
+        pass
+
+
+def send_reset_accept(sock: socket.socket):
+    try:
+        payload = json.dumps({"type": "reset_accept"}).encode()
+        sock.send(payload)
+    except Exception:
+        pass
+
+
+def send_reset_reject(sock: socket.socket):
+    try:
+        payload = json.dumps({"type": "reset_reject"}).encode()
+        sock.send(payload)
+    except Exception:
+        pass
