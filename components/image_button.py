@@ -56,3 +56,12 @@ class RestartButton(ImageButton):
         self.image = pygame.image.load(resource_path("assets/icons/restart_button_icon.png")).convert_alpha()
         self.image = pygame.transform.smoothscale(self.image, (30, 30))
         self.disabled = False
+
+class ResignButton(ImageButton):
+    def __init__(self):
+        # Try to load resign.png if available; fall back to restart icon
+        try:
+            super().__init__(resource_path("assets/icons/resign.png"), 30, 30)
+        except Exception:
+            # Fallback: use restart icon but treat it as resign visually
+            super().__init__(resource_path("assets/icons/restart_button_icon.png"), 30, 30)

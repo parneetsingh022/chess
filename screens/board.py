@@ -7,7 +7,7 @@ from utils.board_pieces_manager import BoardPiecesManager
 from utils.arrow_manager import ArrowManager
 from utils.highlight_manager import HighlightManager
 
-from components.image_button import ImageButton, BackButton, SettingsButton, RestartButton
+from components.image_button import ImageButton, BackButton, SettingsButton, RestartButton, ResignButton
 from enum import Enum
 from states.gamestate import game_state
 
@@ -34,6 +34,10 @@ def restart_button_action(board_pieces_manager: BoardPiecesManager):
 
     board_pieces_manager.reset(show_p=True)
 
+def resign_button_action(board_pieces_manager: BoardPiecesManager):
+    if not game_state.in_game: return
+    board_pieces_manager.resign()
+
 class BoardPage:
     def __init__(self, screen: pygame.Surface, screen_manager: ScreenManager, board_top_bar_height: int):
         self.screen = screen
@@ -55,26 +59,14 @@ class BoardPage:
 
         self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
         self.restart_button = TopBarButtonItem(RestartButton, lambda: restart_button_action(self.board_pieces_manager), TopBarButtonType.LEFTBUTTON)
+        self.resign_button = TopBarButtonItem(ResignButton, lambda: resign_button_action(self.board_pieces_manager), TopBarButtonType.LEFTBUTTON)
         self.settings_button = TopBarButtonItem(SettingsButton, lambda: settings_button_action(self.screen_manager), TopBarButtonType.RIGHTBUTTON)
 
-        self.top_bar_buttons = [
+        # Base buttons always present; action buttons will be chosen per frame
+        self.top_bar_static = [
             self.home_button,
-            self.restart_button,
             self.settings_button,
         ]
-
-        left_buttons = [btn for btn in self.top_bar_buttons if btn.type == TopBarButtonType.LEFTBUTTON]
-        right_buttons = [btn for btn in self.top_bar_buttons if btn.type == TopBarButtonType.RIGHTBUTTON]
-
-        last_left_button_pos = 0
-        for btn in left_buttons:
-            btn.button.set_position(last_left_button_pos + 10, 10)
-            last_left_button_pos = btn.button.end_pos()
-
-        last_right_button_pos = self.screen.get_width()
-        for btn in right_buttons:
-            btn.button.set_position(last_right_button_pos - 40, 10)
-            last_right_button_pos = btn.button.start_pos()
 
         self.last_check_pos = None
 
@@ -112,11 +104,36 @@ class BoardPage:
         # Fill screen and draw all components
         self.screen.fill(colors.BACKGROUND_COLOR)
         
-        for btn in self.top_bar_buttons:
-            if btn == self.restart_button and not game_state.in_game:
-                btn.button.disable()
-            elif btn == self.restart_button and game_state.in_game and btn.button.disabled == True:
-                btn.button.enable()
+        # Build current buttons list: use Resign in multiplayer, Restart otherwise
+        action_btn = self.resign_button if game_state.multiplayer else self.restart_button
+        current_buttons = [self.home_button, action_btn, self.settings_button]
+
+        # Position left and right groups each frame to adapt to window size
+        left_buttons = [btn for btn in current_buttons if btn.type == TopBarButtonType.LEFTBUTTON]
+        right_buttons = [btn for btn in current_buttons if btn.type == TopBarButtonType.RIGHTBUTTON]
+
+        last_left_button_pos = 0
+        for btn in left_buttons:
+            btn.button.set_position(last_left_button_pos + 10, 10)
+            last_left_button_pos = btn.button.end_pos()
+
+        last_right_button_pos = self.screen.get_width()
+        for btn in right_buttons:
+            btn.button.set_position(last_right_button_pos - 40, 10)
+            last_right_button_pos = btn.button.start_pos()
+
+        for btn in current_buttons:
+            # Enable/disable behavior
+            if btn == self.restart_button:
+                if not game_state.in_game:
+                    btn.button.disable()
+                elif game_state.in_game and btn.button.disabled == True:
+                    btn.button.enable()
+            elif btn == self.resign_button:
+                if not game_state.in_game:
+                    btn.button.disable()
+                else:
+                    btn.button.enable()
 
             btn.button.display(self.screen)
             if not game_state.pop_up_on:

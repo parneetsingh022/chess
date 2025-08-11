@@ -65,14 +65,19 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+
+        # Reset/consent popups
         self.reset_popup = Popup(self.screen, "Are you sure you want to reset the game?", button_type="yesno", callbacks={"yes": self.reset_popup_yes, "no": self.reset_popup_no})
-        # Multiplayer-specific popups
         self.reset_confirm_popup = Popup(self.screen, "Opponent wants to reset. Do you agree?", button_type="yesno", callbacks={"yes": self._reset_confirm_yes, "no": self._reset_confirm_no})
         self.reset_rejected_popup = Popup(self.screen, "Opponent rejected the reset.", button_type="ok", callbacks={"ok": lambda: None})
-        # Waiting indicator popup (non-interactive)
         self.reset_waiting_popup = Popup(self.screen, "Waiting for opponent approval...", button_type="none")
-        self.reset()
 
+        # Resign popups
+        self.resign_popup = Popup(self.screen, "Are you sure you want to resign?", button_type="yesno", callbacks={"yes": self._resign_yes, "no": lambda: None})
+        self.opponent_resigned_popup = Popup(self.screen, "Opponent resigned. You win!", button_type="ok", callbacks={"ok": lambda: None})
+
+        # Initialize game state
+        self.reset()
         self.event = None
 
         
@@ -94,6 +99,23 @@ class BoardPiecesManager:
 
     def reset_popup_no(self):
         pass
+
+    def resign(self):
+        # Ask for confirmation to resign
+        self.resign_popup.show()
+
+    def _resign_yes(self):
+        # Local player resigns: end game and notify opponent if applicable
+        game_state.in_game = False
+        game_state.check_position = None
+        try:
+            if game_state.multiplayer and game_state.net_socket is not None:
+                # Send a simple resign message over existing socket (JSON line)
+                game_state.net_socket.sendall(("{\"type\": \"resign\"}\n").encode("utf-8"))
+        except Exception:
+            pass
+        # Reset board to initial state
+        self.reset()
 
     def reset(self, show_p=False, flip=False):
         if show_p:
@@ -342,12 +364,13 @@ class BoardPiecesManager:
 
         # Draw popups (render only; event handling below)
         self.reset_popup.draw()
-        # Multiplayer consent flow popups
         self.reset_confirm_popup.draw()
         self.reset_rejected_popup.draw()
         self.reset_waiting_popup.draw()
+        self.resign_popup.draw()
+        self.opponent_resigned_popup.draw()
 
-    # Do not flip here; the screen will be updated once per frame by the parent screen
+        # Do not flip here; the screen will be updated once per frame by the parent screen
 
         # Handle the event
         if self.event:
@@ -357,6 +380,10 @@ class BoardPiecesManager:
             if self.reset_confirm_popup.handle_event(self.event):
                 return
             if self.reset_rejected_popup.handle_event(self.event):
+                return
+            if self.resign_popup.handle_event(self.event):
+                return
+            if self.opponent_resigned_popup.handle_event(self.event):
                 return
 
         # Poll for incoming network moves if in multiplayer
@@ -389,6 +416,9 @@ class BoardPiecesManager:
                     # Peer rejected; inform the requester
                     self.reset_waiting_popup.hide()
                     self.reset_rejected_popup.show()
+                elif msg.get("type") == "resign":
+                    # Opponent resigned; show info popup
+                    self.opponent_resigned_popup.show()
 
     def _reset_confirm_yes(self):
         # Send acceptance and reset locally
