@@ -447,7 +447,7 @@ class BoardPiecesManager:
                 if pos is not None:
                     if self.selected_piece:
                         # If clicking on the already selected piece, start dragging
-                        if pos == self.selected_piece:
+                        if pos == self.selected_piece and settings_file_manager.get_setting("drag_drop"):
                             idx = self._get_piece_index_at_pos(self.selected_piece)
                             if idx is not None:
                                 self.dragging = True
@@ -465,7 +465,7 @@ class BoardPiecesManager:
                     else:
                         # No selection yet: attempt to select piece at pos
                         self.select_piece(pos)
-                        if self.selected_piece is not None:
+                        if self.selected_piece is not None and settings_file_manager.get_setting("drag_drop"):
                             # Start dragging immediately when selecting a piece on mousedown
                             idx = self._get_piece_index_at_pos(self.selected_piece)
                             if idx is not None:
@@ -506,7 +506,6 @@ class BoardPiecesManager:
                     f = tuple(msg.get("from"))
                     t = tuple(msg.get("to"))
                     # Apply the move directly
-                    self.selected_piece = f
                     self.select_piece(f, force=True)
                     self.move_piece(t)
                     # Track opponent's last move

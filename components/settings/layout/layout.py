@@ -60,6 +60,8 @@ root_layout = Layout('ROOT', LayoutType.LayoutCategory)
 
 general = root_layout.add_sub_layout('General', LayoutType.LayoutCategory)
 general.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_atrb='movement_indicators')
+general.add_sub_layout('In-game Highlighting', LayoutType.LayoutToggle, target_atrb='in_game_highlighting')
+general.add_sub_layout('Drag & Drop', LayoutType.LayoutToggle, target_atrb='drag_drop')
 general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
 general.add_sub_layout('Default Player', LayoutType.LayoutOption, target_atrb='default_player', options=['white', 'black'])
 

@@ -4,6 +4,8 @@ import os
 default_settings = {
     "turn_indicator": True,
     "movement_indicators": True,
+    "in_game_highlighting": True,
+    "drag_drop": True,
 }
 
 class SettingsFileManager:
@@ -32,11 +34,14 @@ class SettingsFileManager:
             return {}
 
     def get_setting(self, atrb):
-        """Retrieve a setting attribute."""
+        """Retrieve a setting attribute. Falls back to default if missing."""
         try:
-            return self.settings.get(atrb, None)
+            if atrb in self.settings:
+                return self.settings.get(atrb)
+            # Fallback to default if not present in persisted settings
+            return default_settings.get(atrb, None)
         except AttributeError:
-            return None
+            return default_settings.get(atrb, None)
 
     def save_setting(self, atrb, value):
         """Update a setting attribute and save it to the file."""

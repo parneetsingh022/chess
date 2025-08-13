@@ -6,6 +6,7 @@ from utils.chess_board_manager import ChessBoardManager
 from utils.board_pieces_manager import BoardPiecesManager
 from utils.arrow_manager import ArrowManager
 from utils.highlight_manager import HighlightManager
+from utils.local_storage.storage import settings_file_manager
 
 from components.image_button import ImageButton, BackButton, SettingsButton, RestartButton, ResignButton
 from enum import Enum
@@ -97,9 +98,10 @@ class BoardPage:
 
         # Update arrow hover early in the frame to draw the freshest preview
         if event and event.type == pygame.MOUSEMOTION and self.right_mouse_down:
-            square_pos = self.chess_board_manager.get_square_loc(*event.pos)
-            if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8:
-                self.arrow_manager.update_hover_square(square_pos)
+            if settings_file_manager.get_setting("in_game_highlighting"):
+                square_pos = self.chess_board_manager.get_square_loc(*event.pos)
+                if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8:
+                    self.arrow_manager.update_hover_square(square_pos)
 
         # Apply debounce/timing for hover squares every frame
         self.arrow_manager.tick()
@@ -149,10 +151,12 @@ class BoardPage:
         self.chess_board_manager.draw_board(black_color, white_color)
         self.board_pieces_manager.display()
         # Draw square highlights above pieces
-        self.highlight_manager.draw_highlights(self.screen)
+        if settings_file_manager.get_setting("in_game_highlighting"):
+            self.highlight_manager.draw_highlights(self.screen)
         
         # Draw arrows after the board and pieces
-        self.arrow_manager.draw_arrows(self.screen)
+        if settings_file_manager.get_setting("in_game_highlighting"):
+            self.arrow_manager.draw_arrows(self.screen)
 
         pygame.display.update()
 
@@ -164,18 +168,20 @@ class BoardPage:
                         self.left_mouse_down = True
                         self.mouse_down = True
                         # Clear arrows and highlights on left-click
-                        self.arrow_manager.clear_arrows()
-                        self.highlight_manager.clear_highlights()
+                        if settings_file_manager.get_setting("in_game_highlighting"):
+                            self.arrow_manager.clear_arrows()
+                            self.highlight_manager.clear_highlights()
                 elif event.button == 3:  # Right mouse button
                     if not self.right_mouse_down:
                         self.right_mouse_down = True
                         x, y = event.pos
                         square_pos = self.chess_board_manager.get_square_loc(x, y)
-                        # Record down info for deciding click vs drag
-                        self._right_down_square = square_pos if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8 else None
-                        self._right_down_pos = (x, y)
-                        # Start arrow candidate; we'll cancel if it turns into a click
-                        self.arrow_manager.start_drawing_arrow(self._right_down_square)
+                        if settings_file_manager.get_setting("in_game_highlighting"):
+                            # Record down info for deciding click vs drag
+                            self._right_down_square = square_pos if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8 else None
+                            self._right_down_pos = (x, y)
+                            # Start arrow candidate; we'll cancel if it turns into a click
+                            self.arrow_manager.start_drawing_arrow(self._right_down_square)
                         
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
@@ -201,14 +207,15 @@ class BoardPage:
                             dx = x - self._right_down_pos[0]
                             dy = y - self._right_down_pos[1]
                             drag_px = (dx*dx + dy*dy) ** 0.5
-                        if self._right_down_square and drag_px <= self._right_drag_threshold_px:
-                            # Treat as click: toggle highlight on the square, even if empty
-                            self.highlight_manager.toggle_highlight(self._right_down_square)
-                            # Cancel any in-progress arrow preview
-                            self.arrow_manager.cancel_drawing()
-                        else:
-                            # Finish arrow if valid
-                            self.arrow_manager.finish_drawing_arrow(square_up)
+                        if settings_file_manager.get_setting("in_game_highlighting"):
+                            if self._right_down_square and drag_px <= self._right_drag_threshold_px:
+                                # Treat as click: toggle highlight on the square, even if empty
+                                self.highlight_manager.toggle_highlight(self._right_down_square)
+                                # Cancel any in-progress arrow preview
+                                self.arrow_manager.cancel_drawing()
+                            else:
+                                # Finish arrow if valid
+                                self.arrow_manager.finish_drawing_arrow(square_up)
                         # Reset right-down tracking
                         self._right_down_square = None
                         self._right_down_pos = None
@@ -220,9 +227,11 @@ class BoardPage:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     # Clear all arrows on Escape key
-                    self.arrow_manager.clear_arrows()
-                    self.highlight_manager.clear_highlights()
+                    if settings_file_manager.get_setting("in_game_highlighting"):
+                        self.arrow_manager.clear_arrows()
+                        self.highlight_manager.clear_highlights()
                 elif event.key == pygame.K_c:
                     # Clear all arrows on C key (alternative)
-                    self.arrow_manager.clear_arrows()
-                    self.highlight_manager.clear_highlights()
+                    if settings_file_manager.get_setting("in_game_highlighting"):
+                        self.arrow_manager.clear_arrows()
+                        self.highlight_manager.clear_highlights()
