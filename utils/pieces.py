@@ -11,8 +11,9 @@ class PieceType(Enum):
     KING = 5
 
 class PieceColor(Enum):
-    BLACK = 0
-    WHITE = 1
+    # Match sprite sheet row order: row 0 is WHITE, row 1 is BLACK
+    WHITE = 0
+    BLACK = 1
 
 class Piece:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, piece_type: PieceType, piece_color: PieceColor):

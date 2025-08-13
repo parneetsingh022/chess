@@ -84,6 +84,8 @@ class BoardPiecesManager:
         self.dragging = False
         self._drag_piece_index = None
         self._drag_pos = None  # screen pixel coords
+        # Multiplayer: track opponent's last move (from_pos, to_pos) in 1-based coords
+        self.opponent_last_move = None
 
         
 
@@ -159,6 +161,7 @@ class BoardPiecesManager:
         self.is_check_mate = False
 
         self.last_moved_pos = None
+        self.opponent_last_move = None
 
         # En passant: target square available for en passant capture on the immediate next move
         self.en_passant_target = None
@@ -174,6 +177,19 @@ class BoardPiecesManager:
         y = (y - 1) * self.square_size + self.board_top_bar_height
 
         pygame.draw.rect(self.screen, color, (x, y, self.square_size, self.square_size), 4)
+
+    def _draw_filled_square(self, x, y, color=(255, 215, 0), alpha=90):
+        """Draw a translucent filled square at board coords (1-8,1-8)."""
+        bx, by = x, y
+        if self.player == "black":
+            bx = 9 - bx
+            by = 9 - by
+        px = (bx - 1) * self.square_size
+        py = (by - 1) * self.square_size + self.board_top_bar_height
+        surf = pygame.Surface((self.square_size, self.square_size), pygame.SRCALPHA)
+        r, g, b = color
+        surf.fill((r, g, b, alpha))
+        self.screen.blit(surf, (px, py))
 
     def _no_move_left(self):
         if not self.is_under_check: return
@@ -332,6 +348,12 @@ class BoardPiecesManager:
     def display(self):
         if self.last_moved_pos is not None:
             self._draw_rectangle(*self.last_moved_pos, color=(128, 128, 128))
+        # In multiplayer, highlight opponent's last move (from and to squares)
+        if game_state.multiplayer and self.opponent_last_move:
+            f, t = self.opponent_last_move
+            # Use gold-ish overlay; differentiate from general selection
+            self._draw_filled_square(f[0], f[1], color=(255, 223, 0), alpha=70)
+            self._draw_filled_square(t[0], t[1], color=(255, 223, 0), alpha=70)
         settings_default_player = settings_file_manager.get_setting("default_player")
 
         if self.player != settings_default_player and settings_default_player is not None:
@@ -487,6 +509,8 @@ class BoardPiecesManager:
                     self.selected_piece = f
                     self.select_piece(f, force=True)
                     self.move_piece(t)
+                    # Track opponent's last move
+                    self.opponent_last_move = (f, t)
                 elif msg.get("type") == "reset":
                     # Legacy immediate reset (keep for compatibility)
                     game_state.in_game = False
