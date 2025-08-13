@@ -29,17 +29,13 @@ class ChessBoardManager:
 
         for i in range(0, 8):
             for j in range(0, 8):
-                color1, color2 = (white_color, black_color) if (i + j) % 2 == 0 else (black_color, white_color)
-                
-                if self.player == "white":
-                    default_color = color1
-                else:
-                    default_color = color2
+                # Determine base color by parity; do not invert globally by player
+                base_color = white_color if (i + j) % 2 == 0 else black_color
 
-                # Check if the square is set to red
-                color = self.color_state.get((i + 1, j + 1), default_color)
+                # Check if the square is set to red; otherwise use base color
+                color = self.color_state.get((i + 1, j + 1), base_color)
 
-                # Adjust the y-coordinate by adding board_top_bar_height
+                # Draw square (board itself stays consistent; perspective is handled by pieces and input mapping)
                 draw_square(i, j, self._square_size, color, self.screen, self.board_top_bar_height)
 
     def get_square_loc(self, x, y):

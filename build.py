@@ -16,7 +16,7 @@ build_notes = {
         "Sounds: Added sound effects for piece movement, captures, and check notifications."
     ],
     "bug-fix": [
-
+        "Board Rotation: Fixed rotation did not rotate actual chess squares but only chess pieces."
     ]
 }
 
