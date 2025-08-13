@@ -1,4 +1,5 @@
 import pygame
+import pygame.gfxdraw as gfxdraw
 import math
 from typing import Tuple, Optional
 from enum import Enum
@@ -15,8 +16,9 @@ class Arrow:
         self.start_square = start_square
         self.end_square = end_square
         self.arrow_type = arrow_type
-        self.color = (255, 69, 0)  # Orange
-        self.thickness = 6
+        # Semi-transparent orange-red with larger default thickness
+        self.color = (255, 69, 0, 160)
+        self.thickness = 8
 
 
 class ArrowManager:
@@ -113,8 +115,8 @@ class ArrowManager:
             py = top + (8 - by) * square_size + square_size // 2
         return (int(px), int(py))
 
-    def _draw_arrow_line(self, screen: pygame.Surface, start_pos: Tuple[int, int],
-                         end_pos: Tuple[int, int], color: Tuple[int, int, int], thickness: int):
+    def _draw_arrow_line(self, surface: pygame.Surface, start_pos: Tuple[int, int],
+                         end_pos: Tuple[int, int], color: Tuple[int, int, int] | Tuple[int, int, int, int], thickness: int):
         sx, sy = int(start_pos[0]), int(start_pos[1])
         ex, ey = int(end_pos[0]), int(end_pos[1])
 
@@ -131,18 +133,17 @@ class ArrowManager:
         # Compute base of arrowhead
         base_x_f = ex - head_length * math.cos(angle)
         base_y_f = ey - head_length * math.sin(angle)
-        base_x = int(round(base_x_f))
-        base_y = int(round(base_y_f))
 
         # Overlap shaft slightly into the head to remove any gap
         overlap = max(1, thickness // 2)
         shaft_end_x = int(round(base_x_f + overlap * math.cos(angle)))
         shaft_end_y = int(round(base_y_f + overlap * math.sin(angle)))
 
-        # Draw shaft and smooth start cap
-        pygame.draw.line(screen, color, (sx, sy), (shaft_end_x, shaft_end_y), thickness)
+        # Draw shaft and smooth start cap (filled + AA circle caps)
+        pygame.draw.line(surface, color, (sx, sy), (shaft_end_x, shaft_end_y), thickness)
         cap_radius = max(1, thickness // 2)
-        pygame.draw.circle(screen, color, (sx, sy), cap_radius)
+        gfxdraw.filled_circle(surface, sx, sy, cap_radius, color)
+        gfxdraw.aacircle(surface, sx, sy, cap_radius, color)
 
         # Arrowhead triangle points
         head_x1 = int(round(ex - head_length * math.cos(angle - head_angle)))
@@ -150,10 +151,12 @@ class ArrowManager:
         head_x2 = int(round(ex - head_length * math.cos(angle + head_angle)))
         head_y2 = int(round(ey - head_length * math.sin(angle + head_angle)))
 
-        pygame.draw.polygon(screen, color, [(ex, ey), (head_x1, head_y1), (head_x2, head_y2)])
+        points = [(ex, ey), (head_x1, head_y1), (head_x2, head_y2)]
+        gfxdraw.filled_polygon(surface, points, color)
+        gfxdraw.aapolygon(surface, points, color)
 
-    def _draw_knight_arrow(self, screen: pygame.Surface, start_pos: Tuple[int, int],
-                           end_pos: Tuple[int, int], color: Tuple[int, int, int], thickness: int):
+    def _draw_knight_arrow(self, surface: pygame.Surface, start_pos: Tuple[int, int],
+                           end_pos: Tuple[int, int], color: Tuple[int, int, int] | Tuple[int, int, int, int], thickness: int):
         sx, sy = int(start_pos[0]), int(start_pos[1])
         ex, ey = int(end_pos[0]), int(end_pos[1])
         dx = ex - sx
@@ -168,7 +171,7 @@ class ArrowManager:
         ix, iy = int(intermediate[0]), int(intermediate[1])
 
         # First segment: start -> corner
-        pygame.draw.line(screen, color, (sx, sy), (ix, iy), thickness)
+        pygame.draw.line(surface, color, (sx, sy), (ix, iy), thickness)
 
         # Second segment: corner -> arrowhead base (trim for head)
         dx_final = ex - ix
@@ -185,10 +188,12 @@ class ArrowManager:
             oy = int(round(overlap * math.sin(angle)))
             shaft_end_x = base_x + ox
             shaft_end_y = base_y + oy
-            pygame.draw.line(screen, color, (ix, iy), (shaft_end_x, shaft_end_y), thickness)
+            pygame.draw.line(surface, color, (ix, iy), (shaft_end_x, shaft_end_y), thickness)
 
             # Smooth the elbow by covering any gap at the corner
-            pygame.draw.circle(screen, color, (ix, iy), max(1, thickness // 2))
+            r = max(1, thickness // 2)
+            gfxdraw.filled_circle(surface, ix, iy, r, color)
+            gfxdraw.aacircle(surface, ix, iy, r, color)
 
             # Arrowhead
             head_angle = math.pi / 6
@@ -196,16 +201,21 @@ class ArrowManager:
             head_y1 = int(ey - head_length * math.sin(angle - head_angle))
             head_x2 = int(ex - head_length * math.cos(angle + head_angle))
             head_y2 = int(ey - head_length * math.sin(angle + head_angle))
-            pygame.draw.polygon(screen, color, [(ex, ey), (head_x1, head_y1), (head_x2, head_y2)])
+            points = [(ex, ey), (head_x1, head_y1), (head_x2, head_y2)]
+            gfxdraw.filled_polygon(surface, points, color)
+            gfxdraw.aapolygon(surface, points, color)
 
     def draw_arrows(self, screen: pygame.Surface):
+        # Draw onto an alpha surface to get smooth transparency
+        overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+
         for arrow in self.arrows:
             start_pos = self._square_to_pixel(arrow.start_square)
             end_pos = self._square_to_pixel(arrow.end_square)
             if arrow.arrow_type == ArrowType.KNIGHT:
-                self._draw_knight_arrow(screen, start_pos, end_pos, arrow.color, arrow.thickness)
+                self._draw_knight_arrow(overlay, start_pos, end_pos, arrow.color, arrow.thickness)
             else:
-                self._draw_arrow_line(screen, start_pos, end_pos, arrow.color, arrow.thickness)
+                self._draw_arrow_line(overlay, start_pos, end_pos, arrow.color, arrow.thickness)
 
         if self.drawing_arrow and self.arrow_start_square:
             current_square = self.current_hover_square or self._candidate_square
@@ -216,7 +226,12 @@ class ArrowManager:
                 if arrow_type:
                     start_pos = self._square_to_pixel(self.arrow_start_square)
                     end_pos = self._square_to_pixel(current_square)
+                    preview_color = (255, 165, 0, 120)
+                    preview_thickness = 6
                     if arrow_type == ArrowType.KNIGHT:
-                        self._draw_knight_arrow(screen, start_pos, end_pos, (255, 165, 0), 3)
+                        self._draw_knight_arrow(overlay, start_pos, end_pos, preview_color, preview_thickness)
                     else:
-                        self._draw_arrow_line(screen, start_pos, end_pos, (255, 165, 0), 3)
+                        self._draw_arrow_line(overlay, start_pos, end_pos, preview_color, preview_thickness)
+
+        # Blit the overlay once
+        screen.blit(overlay, (0, 0))
