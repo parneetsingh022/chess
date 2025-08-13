@@ -1,6 +1,8 @@
 import pygame
 from typing import Tuple
 from utils.local_storage.storage import settings_file_manager  # Import the SettingsFileManager class
+from constants.fonts import BOARD_COORDINATES_FONT
+from constants import colors
 
 def draw_square(i, j, square_size, color, screen, board_top_bar_height):
     pygame.draw.rect(screen, color, pygame.Rect(i * square_size, j * square_size + board_top_bar_height, square_size, square_size))
@@ -27,16 +29,36 @@ class ChessBoardManager:
             settings_default_player = settings_default_player.lower()
             self.player = settings_default_player
 
+        # Draw squares with orientation-aware mapping so color_state and parity match perspective
         for i in range(0, 8):
             for j in range(0, 8):
-                # Determine base color by parity; do not invert globally by player
-                base_color = white_color if (i + j) % 2 == 0 else black_color
+                if self.player == "white":
+                    bx, by = i + 1, j + 1
+                else:
+                    bx, by = 8 - i, 8 - j
 
-                # Check if the square is set to red; otherwise use base color
-                color = self.color_state.get((i + 1, j + 1), base_color)
+                base_color = white_color if (bx + by) % 2 == 0 else black_color
+                sq_color = self.color_state.get((bx, by), base_color)
+                draw_square(i, j, self._square_size, sq_color, self.screen, self.board_top_bar_height)
 
-                # Draw square (board itself stays consistent; perspective is handled by pieces and input mapping)
-                draw_square(i, j, self._square_size, color, self.screen, self.board_top_bar_height)
+        # Draw file letters (a–h) along the bottom and rank numbers (1–8) along the left
+        pad = max(3, self._square_size // 16)
+        # Bottom files
+        for i in range(8):
+            file_index = i if self.player == "white" else (7 - i)
+            letter = chr(ord('a') + file_index)
+            surf = BOARD_COORDINATES_FONT.render(letter, True, colors.FONT_COLOR_GREY)
+            x = (i + 1) * self._square_size - surf.get_width() - pad
+            y = self.board_top_bar_height + 8 * self._square_size - surf.get_height() - pad
+            self.screen.blit(surf, (x, y))
+
+        # Left ranks
+        for j in range(8):
+            rank = (8 - j) if self.player == "white" else (j + 1)
+            surf = BOARD_COORDINATES_FONT.render(str(rank), True, colors.FONT_COLOR_GREY)
+            x = pad
+            y = self.board_top_bar_height + j * self._square_size + pad
+            self.screen.blit(surf, (x, y))
 
     def get_square_loc(self, x, y):
         """

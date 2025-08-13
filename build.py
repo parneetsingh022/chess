@@ -13,7 +13,8 @@ build_notes = {
         "En Passant: Added support for en passant capture in pawn movement logic.",
         "UX Improvement: Enhanced main menu buttons with animation and better look.",
         "Board Annotations: Right-click and drag to draw arrows (straight, diagonal, and knight L). Multiple arrows supported and orientation-aware.",
-        "Sounds: Added sound effects for piece movement, captures, and check notifications."
+        "Sounds: Added sound effects for piece movement, captures, and check notifications.",
+        "Board Coordinates: Added visual indicators for board coordinates (a1, h8) on the edges."
     ],
     "bug-fix": [
         "Board Rotation: Fixed rotation did not rotate actual chess squares but only chess pieces."

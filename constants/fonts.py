@@ -8,6 +8,9 @@ _default_font_file = resource_path('assets/fonts/OpenSans.ttf')
 
 DEFAULT_FONT = pygame.font.Font(_default_font_file, 26)
 
+BOARD_COORDINATES_FONT = pygame.font.Font(_default_font_file, 15)
+
+
 
 #SETTINGS
 SETTINGS_HEADING = pygame.font.Font(_default_font_file, 30)
