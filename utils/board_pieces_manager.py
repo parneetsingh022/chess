@@ -80,6 +80,11 @@ class BoardPiecesManager:
         self.reset()
         self.event = None
 
+        # Drag-and-drop state for pieces
+        self.dragging = False
+        self._drag_piece_index = None
+        self._drag_pos = None  # screen pixel coords
+
         
 
     def add_event(self, event):
@@ -224,6 +229,21 @@ class BoardPiecesManager:
         # Draw the text on top of the background
         self.screen.blit(text, text_rect)
 
+    def _pixel_to_square(self, x: int, y: int) -> tuple[int, int] | None:
+        """Convert screen pixel coordinates to 1-based board square coords, or None if outside board."""
+        # Adjust for top bar
+        y_adj = y - self.board_top_bar_height
+        if y_adj < 0:
+            return None
+        bx = x // self.square_size + 1
+        by = y_adj // self.square_size + 1
+        if not (1 <= bx <= 8 and 1 <= by <= 8):
+            return None
+        if self.player == "black":
+            bx = 9 - bx
+            by = 9 - by
+        return int(bx), int(by)
+
     def _initialize_pieces(self):
         pieces = []
         for y, row in enumerate(self.layout):
@@ -346,8 +366,21 @@ class BoardPiecesManager:
                     self.turn_indicator.set_position(0, self.board_top_bar_height)
             self.turn_indicator.display(self.screen)
 
-        for piece, x, y in self.pieces:
+        # Draw pieces; if dragging, draw dragged piece last at cursor
+        dragged_piece = None
+        dragged_idx = self._drag_piece_index if self.dragging else None
+        for idx, (piece, x, y) in enumerate(self.pieces):
+            if self.dragging and dragged_idx is not None and idx == dragged_idx:
+                dragged_piece = piece
+                continue
             piece.display(x, y, self.board_top_bar_height)
+        # Draw dragged piece following cursor
+        if self.dragging and dragged_piece is not None and self._drag_pos is not None:
+            px, py = self._drag_pos
+            # Center piece on cursor
+            draw_x = px - self.square_size // 2
+            draw_y = py - self.square_size // 2
+            dragged_piece.display(draw_x, draw_y, 0, absolute_coordinates=True)
         
         # Draw rectangle around the selected piece
         if self.selected_piece:
@@ -385,6 +418,63 @@ class BoardPiecesManager:
                 return
             if self.opponent_resigned_popup.handle_event(self.event):
                 return
+
+            # Drag-and-click interactions for pieces (left mouse)
+            if self.event.type == pygame.MOUSEBUTTONDOWN and self.event.button == 1:
+                pos = self._pixel_to_square(*self.event.pos)
+                if pos is not None:
+                    if self.selected_piece:
+                        # If clicking on the already selected piece, start dragging
+                        if pos == self.selected_piece:
+                            idx = self._get_piece_index_at_pos(self.selected_piece)
+                            if idx is not None:
+                                self.dragging = True
+                                self._drag_piece_index = idx
+                                self._drag_pos = self.event.pos
+                                # Change cursor to hand while dragging
+                                try:
+                                    pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_HAND)
+                                except Exception:
+                                    try:
+                                        pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND))
+                                    except Exception:
+                                        pass
+                        # Else: keep selection; BoardPage will handle click-to-move on mouse up
+                    else:
+                        # No selection yet: attempt to select piece at pos
+                        self.select_piece(pos)
+                        if self.selected_piece is not None:
+                            # Start dragging immediately when selecting a piece on mousedown
+                            idx = self._get_piece_index_at_pos(self.selected_piece)
+                            if idx is not None:
+                                self.dragging = True
+                                self._drag_piece_index = idx
+                                self._drag_pos = self.event.pos
+                                # Change cursor to hand while dragging
+                                try:
+                                    pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_HAND)
+                                except Exception:
+                                    try:
+                                        pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND))
+                                    except Exception:
+                                        pass
+            elif self.event.type == pygame.MOUSEMOTION and self.dragging and pygame.mouse.get_pressed()[0]:
+                # Update drag position while holding left button
+                self._drag_pos = self.event.pos
+            elif self.event.type == pygame.MOUSEBUTTONUP and self.event.button == 1:
+                # Stop dragging on release; BoardPage will trigger the move using current cursor square
+                if self.dragging:
+                    self.dragging = False
+                    self._drag_piece_index = None
+                    self._drag_pos = None
+                    # Restore default arrow cursor
+                    try:
+                        pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                    except Exception:
+                        try:
+                            pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_ARROW))
+                        except Exception:
+                            pass
 
         # Poll for incoming network moves if in multiplayer
         if game_state.multiplayer and game_state.net_socket is not None:
@@ -488,8 +578,7 @@ class BoardPiecesManager:
 
         from_pos = self.selected_piece
         if to_pos == from_pos:
-            self.selected_piece = None
-            self.selected_possible_moves = []
+            # Treat as a simple click on the selected piece: keep selection so click-to-move works
             return
 
         # Convert 1-based to 0-based coordinates for layout access

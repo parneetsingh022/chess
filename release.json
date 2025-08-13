@@ -7,7 +7,8 @@
         "Random Colors: Colors are assigned randomly on connect; board flips automatically for black.",
         "Move Relay: Reliable move synchronization between peers over the LAN session.",
         "Consented Reset: Reset now requires opponent approval (request/accept/reject) with popups and a waiting indicator.",
-        "En Passant: Added support for en passant capture in pawn movement logic."
+        "En Passant: Added support for en passant capture in pawn movement logic.",
+        "Drag and Drop: Implemented drag-and-drop functionality for piece movement."
     ],
     "bug-fix": []
 }

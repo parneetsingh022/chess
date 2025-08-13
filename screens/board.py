@@ -50,13 +50,16 @@ class BoardPage:
         self.arrow_manager = ArrowManager(self.chess_board_manager)
         self.highlight_manager = HighlightManager(self.chess_board_manager)
 
-        self._last_right_click_ms = 0
-        self._double_click_threshold_ms = 350
-
+        # Mouse state
         self.mouse_down = False
         self.left_mouse_down = False
         self.right_mouse_down = False
+        # Track right-click origin to decide between click-highlight and drag-arrow
+        self._right_down_square = None
+        self._right_down_pos = None
+        self._right_drag_threshold_px = 6
 
+        # Top bar buttons
         self.home_button = TopBarButtonItem(BackButton, lambda: back_button_action(self.screen_manager), TopBarButtonType.LEFTBUTTON)
         self.restart_button = TopBarButtonItem(RestartButton, lambda: restart_button_action(self.board_pieces_manager), TopBarButtonType.LEFTBUTTON)
         self.resign_button = TopBarButtonItem(ResignButton, lambda: resign_button_action(self.board_pieces_manager), TopBarButtonType.LEFTBUTTON)
@@ -160,7 +163,7 @@ class BoardPage:
                     if not self.left_mouse_down:
                         self.left_mouse_down = True
                         self.mouse_down = True
-                        # Clear arrows and highlights on left-click (per requirement)
+                        # Clear arrows and highlights on left-click
                         self.arrow_manager.clear_arrows()
                         self.highlight_manager.clear_highlights()
                 elif event.button == 3:  # Right mouse button
@@ -168,21 +171,11 @@ class BoardPage:
                         self.right_mouse_down = True
                         x, y = event.pos
                         square_pos = self.chess_board_manager.get_square_loc(x, y)
-                        # Detect double right-click for highlight toggle
-                        now_ms = pygame.time.get_ticks()
-                        if now_ms - self._last_right_click_ms <= self._double_click_threshold_ms:
-                            # Double-click detected: toggle highlight on this square if a piece exists here
-                            if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8:
-                                lx, ly = square_pos[0] - 1, square_pos[1] - 1
-                                if 0 <= ly < len(self.board_pieces_manager.layout) and 0 <= lx < len(self.board_pieces_manager.layout[0]):
-                                    if self.board_pieces_manager.layout[ly][lx] != "":
-                                        self.highlight_manager.toggle_highlight(square_pos)
-                            # Prevent treating this as start of arrow drawing
-                            self.arrow_manager.cancel_drawing()
-                        else:
-                            # Start arrow drawing on single right-click
-                            self.arrow_manager.start_drawing_arrow(square_pos)
-                        self._last_right_click_ms = now_ms
+                        # Record down info for deciding click vs drag
+                        self._right_down_square = square_pos if square_pos and 1 <= square_pos[0] <= 8 and 1 <= square_pos[1] <= 8 else None
+                        self._right_down_pos = (x, y)
+                        # Start arrow candidate; we'll cancel if it turns into a click
+                        self.arrow_manager.start_drawing_arrow(self._right_down_square)
                         
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button
@@ -201,8 +194,24 @@ class BoardPage:
                     if self.right_mouse_down:
                         self.right_mouse_down = False
                         x, y = event.pos
-                        square_pos = self.chess_board_manager.get_square_loc(x, y)
-                        self.arrow_manager.finish_drawing_arrow(square_pos)
+                        square_up = self.chess_board_manager.get_square_loc(x, y)
+                        # Determine if this was a drag (arrow) or click (highlight)
+                        drag_px = 0
+                        if self._right_down_pos is not None:
+                            dx = x - self._right_down_pos[0]
+                            dy = y - self._right_down_pos[1]
+                            drag_px = (dx*dx + dy*dy) ** 0.5
+                        if self._right_down_square and drag_px <= self._right_drag_threshold_px:
+                            # Treat as click: toggle highlight on the square, even if empty
+                            self.highlight_manager.toggle_highlight(self._right_down_square)
+                            # Cancel any in-progress arrow preview
+                            self.arrow_manager.cancel_drawing()
+                        else:
+                            # Finish arrow if valid
+                            self.arrow_manager.finish_drawing_arrow(square_up)
+                        # Reset right-down tracking
+                        self._right_down_square = None
+                        self._right_down_pos = None
                         
             elif event.type == pygame.MOUSEMOTION:
                 # Already handled above before drawing for smoother preview

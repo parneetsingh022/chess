@@ -21,9 +21,9 @@ class HighlightManager:
     def draw_highlights(self, screen: pygame.Surface):
         if not self._highlights:
             return
-        # Draw semi-transparent ring on each highlighted square
+        # Draw semi-transparent full-square overlay on each highlighted square
         for sq in self._highlights:
-            self._draw_ring_on_square(screen, sq)
+            self._draw_fill_on_square(screen, sq)
 
     def _square_rect(self, square: Tuple[int, int]) -> pygame.Rect:
         x1b, y1b = square
@@ -35,26 +35,22 @@ class HighlightManager:
             sy = self._cbm.board_top_bar_height + (8 - y1b) * self._cbm._square_size
         return pygame.Rect(sx, sy, self._cbm._square_size, self._cbm._square_size)
 
-    def _draw_ring_on_square(self, screen: pygame.Surface, square: Tuple[int, int]):
+    def _draw_fill_on_square(self, screen: pygame.Surface, square: Tuple[int, int]):
         rect = self._square_rect(square)
 
-        # Create an alpha surface to draw a translucent ring
-        ring_surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        # Create an alpha surface to draw a translucent full-square highlight
+        fill_surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
 
-        # Ring parameters
-        margin = max(2, int(rect.width * 0.08))
-        outer_color = (255, 69, 0, 130)  # match arrow orange, semi-transparent
-        center = (rect.width // 2, rect.height // 2)
-        radius = min(rect.width, rect.height) // 2 - margin
-        thickness = max(4, int(rect.width * 0.12))
+        # Colors: semi-transparent orange fill with a slightly stronger border
+        fill_color = (255, 165, 0, 90)
+        border_color = (255, 69, 0, 150)
 
-        # Draw outer circle (ring)
-        pygame.draw.circle(ring_surf, outer_color, center, radius, thickness)
+        # Fill the entire square
+        pygame.draw.rect(fill_surf, fill_color, pygame.Rect(0, 0, rect.width, rect.height))
 
-        # Optional subtle inner fill to improve visibility on dark squares
-        inner_radius = max(0, radius - thickness // 2)
-        fill_alpha = 40
-        if inner_radius > 0:
-            pygame.draw.circle(ring_surf, (255, 69, 0, fill_alpha), center, inner_radius)
+        # Optional border for clarity
+        border_w = max(2, rect.width // 24)
+        pygame.draw.rect(fill_surf, border_color, pygame.Rect(0, 0, rect.width, rect.height), border_w)
 
-        screen.blit(ring_surf, (rect.x, rect.y))
+        # Blit on screen at board coordinates
+        screen.blit(fill_surf, (rect.x, rect.y))
