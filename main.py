@@ -23,10 +23,12 @@ theme = ThemeReader()
 pygame.init()
 
 BOARD_TOP_BAR_HEIGHT = 50
+SIDE_PANEL_WIDTH = 220  # Reserved extra space for board side panel (UI, move list, etc.)
 
-SIZE_SMALL = (450, 450 + BOARD_TOP_BAR_HEIGHT)
-SIZE_MEDIUM = (650, 650 + BOARD_TOP_BAR_HEIGHT)
-SIZE_LARGE = (850, 850 + BOARD_TOP_BAR_HEIGHT)
+# Base board sizes remain the same; total window width adds the side panel
+SIZE_SMALL = (450 + SIDE_PANEL_WIDTH, 450 + BOARD_TOP_BAR_HEIGHT)
+SIZE_MEDIUM = (650 + SIDE_PANEL_WIDTH, 650 + BOARD_TOP_BAR_HEIGHT)
+SIZE_LARGE = (850 + SIDE_PANEL_WIDTH, 850 + BOARD_TOP_BAR_HEIGHT)
 
 size_from_settings = settings_file_manager.get_setting('win_size')
 cur_size = SIZE_MEDIUM

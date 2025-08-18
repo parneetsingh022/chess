@@ -8,10 +8,11 @@ def draw_square(i, j, square_size, color, screen, board_top_bar_height):
     pygame.draw.rect(screen, color, pygame.Rect(i * square_size, j * square_size + board_top_bar_height, square_size, square_size))
 
 class ChessBoardManager:
-    def __init__(self, screen: pygame.Surface, screen_width: int, board_top_bar_height: int, player: str = "white"):
+    def __init__(self, screen: pygame.Surface, board_pixel_width: int, board_top_bar_height: int, player: str = "white"):
+        """board_pixel_width: width in pixels allocated to the 8x8 board (excluding any right side panel)."""
         self.screen = screen
-        self.screen_width = screen_width
-        self._square_size = screen_width // 8  # Ensure square size is an integer
+        self.board_pixel_width = board_pixel_width
+        self._square_size = board_pixel_width // 8  # Ensure square size is an integer
         self.player = player
         settings_player = settings_file_manager.get_setting("default_player")
         if settings_player is not None:
@@ -64,8 +65,14 @@ class ChessBoardManager:
         """
         Convert screen coordinates to board coordinates.
         """
+        # Ignore clicks outside horizontal or vertical board bounds
+        if x < 0 or x >= self.board_pixel_width:
+            return None
+        y_adj = y - self.board_top_bar_height
+        if y_adj < 0 or y_adj >= 8 * self._square_size:
+            return None
         board_x = x // self._square_size + 1
-        board_y = (y - self.board_top_bar_height) // self._square_size + 1
+        board_y = y_adj // self._square_size + 1
         if self.player == "black":
             board_x = 9 - board_x
             board_y = 9 - board_y

@@ -44,12 +44,16 @@ class BoardPage:
         self.screen = screen
         self.board_top_bar_height = board_top_bar_height
         self.screen_manager = screen_manager
-        self.chess_board_manager = ChessBoardManager(screen, screen.get_width(), self.board_top_bar_height)
+        # Reserve right side panel for future UI (e.g., move list, chat, etc.)
+        self.side_panel_width = 220
+        # Board keeps its intended max size; window was widened to accommodate side panel
+        board_width = max(320, screen.get_width() - self.side_panel_width)
+        self.chess_board_manager = ChessBoardManager(screen, board_width, self.board_top_bar_height)
+        self.arrow_manager = ArrowManager(self.chess_board_manager)
+        self.highlight_manager = HighlightManager(self.chess_board_manager)
         self.board_pieces_manager = BoardPiecesManager(
             screen, self.chess_board_manager._square_size, self.chess_board_manager.player, self.board_top_bar_height
         )
-        self.arrow_manager = ArrowManager(self.chess_board_manager)
-        self.highlight_manager = HighlightManager(self.chess_board_manager)
 
         # Mouse state
         self.mouse_down = False
@@ -145,11 +149,22 @@ class BoardPage:
                 btn.button.on_click(event, btn.action)
             else:
                 btn.button.on_click(event, lambda: None)
+
+        # --- Board & side panel drawing ---
         black_color = (0, 0, 0)
         white_color = (255, 255, 255)
-
         self.chess_board_manager.draw_board(black_color, white_color)
+
+        # Side panel placeholder background & label
+        panel_rect = pygame.Rect(self.chess_board_manager._square_size * 8, 0, self.side_panel_width, self.screen.get_height())
+        pygame.draw.rect(self.screen, (30, 30, 38), panel_rect)
+        font_small = pygame.font.Font(None, 22)
+        txt = font_small.render("UI Panel", True, (180, 180, 180))
+        self.screen.blit(txt, (panel_rect.x + 16, self.board_top_bar_height + 10))
+
+        # Pieces on top of board
         self.board_pieces_manager.display()
+
         # Draw square highlights above pieces
         if settings_file_manager.get_setting("in_game_highlighting"):
             self.highlight_manager.draw_highlights(self.screen)
