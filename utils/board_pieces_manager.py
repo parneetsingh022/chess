@@ -354,17 +354,20 @@ class BoardPiecesManager:
             # Use gold-ish overlay; differentiate from general selection
             self._draw_filled_square(f[0], f[1], color=(255, 223, 0), alpha=70)
             self._draw_filled_square(t[0], t[1], color=(255, 223, 0), alpha=70)
-        settings_default_player = settings_file_manager.get_setting("default_player")
-
-        if self.player != settings_default_player and settings_default_player is not None:
-            settings_default_player = settings_default_player.lower()
-            self.player = settings_default_player
-            self.reset(flip=True)
-            if game_state.check_position:
-                king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
-            else:
-                king_pos_c = None
-            game_state.check_position = king_pos_c
+        # Apply user preferred default player only in single-player mode.
+        # In multiplayer we respect the assigned network color (game_state.my_color),
+        # so skip this override to avoid flipping back incorrectly on remote side.
+        if not game_state.multiplayer:
+            settings_default_player = settings_file_manager.get_setting("default_player")
+            if self.player != settings_default_player and settings_default_player is not None:
+                settings_default_player = settings_default_player.lower()
+                self.player = settings_default_player
+                self.reset(flip=True)
+                if game_state.check_position:
+                    king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
+                else:
+                    king_pos_c = None
+                game_state.check_position = king_pos_c
         
         if self.is_check_mate or self._no_move_left():
             self.is_check_mate = True
