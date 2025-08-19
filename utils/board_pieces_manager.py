@@ -567,6 +567,11 @@ class BoardPiecesManager:
             send_reset_reject(game_state.net_socket)
 
     def select_piece(self, pos, force: bool = False):
+        # Block any selection before game has started (unless force is explicitly used internally)
+        if not game_state.in_game and not force:
+            self.selected_piece = None
+            self.selected_possible_moves = []
+            return
         if game_state.pop_up_on: 
             self.selected_piece = None
             return

@@ -63,7 +63,7 @@ class SidePanel:
         self.scroll_offset = 0
         self.content_height = 0
         self._last_view_height = 0
-        self._scroll_speed = 50  # pixels per wheel notch
+        self._scroll_speed = 80  # pixels per wheel notch
 
     def update_geometry(self, x: int, top: int, height: int):
         self.x = x
