@@ -23,7 +23,8 @@ theme = ThemeReader()
 pygame.init()
 
 BOARD_TOP_BAR_HEIGHT = 50
-SIDE_PANEL_WIDTH = 220  # Reserved extra space for board side panel (UI, move list, etc.)
+# Increased side panel width so three 60px bot tiles (with spacing) fit per row
+SIDE_PANEL_WIDTH = 260  # Reserved extra space for board side panel (UI, move list, etc.)
 
 # Base board sizes remain the same; total window width adds the side panel
 SIZE_SMALL = (450 + SIDE_PANEL_WIDTH, 450 + BOARD_TOP_BAR_HEIGHT)

@@ -63,7 +63,7 @@ general.add_sub_layout('Movement Indicators', LayoutType.LayoutToggle, target_at
 general.add_sub_layout('In-game Highlighting', LayoutType.LayoutToggle, target_atrb='in_game_highlighting')
 general.add_sub_layout('Drag & Drop', LayoutType.LayoutToggle, target_atrb='drag_drop')
 general.add_sub_layout('Show turn indicator', LayoutType.LayoutToggle, target_atrb='turn_indicator')
-general.add_sub_layout('Default Player', LayoutType.LayoutOption, target_atrb='default_player', options=['white', 'black'])
+# Removed 'Default Player' option
 
 display = root_layout.add_sub_layout('Display', LayoutType.LayoutCategory)
 display.add_sub_layout('Window Size', LayoutType.LayoutOptionRestartRequired, target_atrb='win_size',options=['medium', 'large', 'small'])

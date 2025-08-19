@@ -3,6 +3,7 @@ from typing import Tuple
 from utils.local_storage.storage import settings_file_manager  # Import the SettingsFileManager class
 from constants.fonts import BOARD_COORDINATES_FONT
 from constants import colors
+from states.gamestate import game_state  # Added to check if a game is in progress
 
 def draw_square(i, j, square_size, color, screen, board_top_bar_height):
     pygame.draw.rect(screen, color, pygame.Rect(i * square_size, j * square_size + board_top_bar_height, square_size, square_size))
@@ -14,9 +15,7 @@ class ChessBoardManager:
         self.board_pixel_width = board_pixel_width
         self._square_size = board_pixel_width // 8  # Ensure square size is an integer
         self.player = player
-        settings_player = settings_file_manager.get_setting("default_player")
-        if settings_player is not None:
-            self.player = settings_player.lower()
+    # Removed default_player setting; orientation chosen elsewhere
 
         self.board_top_bar_height = board_top_bar_height
         self.red_color = (200, 0, 0)
@@ -25,10 +24,11 @@ class ChessBoardManager:
         
 
     def draw_board(self, black_color: Tuple, white_color: Tuple) -> None:
-        settings_default_player = settings_file_manager.get_setting("default_player")
-        if self.player != settings_default_player and settings_default_player is not None:
-            settings_default_player = settings_default_player.lower()
-            self.player = settings_default_player
+        # Only apply the persisted default orientation BEFORE a game starts.
+        # Once a game is in progress we must not auto-flip, otherwise the piece
+        # manager (which was set at start) and the board orientation diverge,
+        # breaking move validation when playing as black.
+    # Removed auto-application of default_player setting
 
         # Draw squares with orientation-aware mapping so color_state and parity match perspective
         for i in range(0, 8):

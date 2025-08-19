@@ -98,8 +98,8 @@ class BoardPiecesManager:
         self._drag_pos = None  # screen pixel coords
         # Multiplayer: track opponent's last move (from_pos, to_pos) in 1-based coords
         self.opponent_last_move = None 
-        # Bot rating & timing (rating-based adaptive bot). Default rating 300.
-        self.bot_rating = 1200
+        # Bot rating & timing (rating-based adaptive bot). Will be set on Start based on user selection.
+        self.bot_rating = 400  # fallback baseline until user picks
         self.bot_move_delay = 0.6  # target total delay (thinking + post delay) lightweight
         self._engine_rating_config_applied = None  # track last rating applied to engine options
 
@@ -184,8 +184,8 @@ class BoardPiecesManager:
         # If human chose black in single-player, let engine (white) start immediately
         if not flip:
             try:
-                if not game_state.multiplayer and self.player == "black":
-                    # Kick off engine thinking for white's opening move
+                # Engine should only start after user has explicitly started the game
+                if game_state.in_game and not game_state.multiplayer and self.player == "black":
                     self._start_engine_think()
             except Exception:
                 pass
@@ -378,26 +378,13 @@ class BoardPiecesManager:
             # Use gold-ish overlay; differentiate from general selection
             self._draw_filled_square(f[0], f[1], color=(255, 223, 0), alpha=70)
             self._draw_filled_square(t[0], t[1], color=(255, 223, 0), alpha=70)
-        # Apply user preferred default player only in single-player mode.
-        # In multiplayer we respect the assigned network color (game_state.my_color),
-        # so skip this override to avoid flipping back incorrectly on remote side.
-        if not game_state.multiplayer:
-            settings_default_player = settings_file_manager.get_setting("default_player")
-            if self.player != settings_default_player and settings_default_player is not None:
-                settings_default_player = settings_default_player.lower()
-                self.player = settings_default_player
-                self.reset(flip=True)
-                if game_state.check_position:
-                    king_pos_c = (9 - game_state.check_position[0], 9 - game_state.check_position[1])
-                else:
-                    king_pos_c = None
-                game_state.check_position = king_pos_c
-                # After flipping to black in single-player at start, trigger engine's first (white) move
-                try:
-                    if not game_state.multiplayer and self.player == "black" and self.turn == "white" and not self.engine_thinking:
-                        self._start_engine_think()
-                except Exception:
-                    pass
+        # Trigger engine first move only after game start (removed default_player orientation setting logic)
+        try:
+            if (game_state.in_game and not game_state.multiplayer and
+                self.player == "black" and self.turn == "white" and not self.engine_thinking):
+                self._start_engine_think()
+        except Exception:
+            pass
         
         if self.is_check_mate or self._no_move_left():
             self.is_check_mate = True
@@ -626,6 +613,9 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
+        # Prevent any movement before Start is pressed
+        if not game_state.in_game:
+            return
         if game_state.pop_up_on:
             return
         if not self.selected_piece:
@@ -1048,6 +1038,16 @@ class BoardPiecesManager:
         except Exception:
             r = 300
         self.bot_rating = max(300, min(r, 3000))
+    # Debug print removed
+        # Invalidate previously applied engine rating so new one will be applied
+        self._engine_rating_config_applied = None
+        # If engine already running, apply new strength immediately so next move reflects it
+        try:
+            with self.engine_lock:
+                if self.engine is not None:
+                    self._configure_engine_strength()
+        except Exception:
+            pass
 
     def _configure_engine_strength(self):
         """Configure Stockfish built-in Elo limiting where possible (floor ~800-1000 depending on build).
@@ -1068,6 +1068,7 @@ class BoardPiecesManager:
                 "UCI_Elo": effective
             })
             self._engine_rating_config_applied = effective
+            # Debug print removed
         except Exception:
             pass
 
@@ -1076,6 +1077,7 @@ class BoardPiecesManager:
         Heuristic mapping rating -> think time, blunder chance, inaccuracy mode.
         """
         rating = self.bot_rating
+    # Debug start print removed
         # Map rating to think time (seconds)
         think_time = (
             0.01 if rating <= 500 else
@@ -1153,4 +1155,5 @@ class BoardPiecesManager:
                         move = candidates[0]
         except Exception:
             move = None
+    # Debug end print removed
         return move, time.time() - start
