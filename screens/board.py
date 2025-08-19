@@ -571,6 +571,41 @@ class BoardPage:
             rating_y = name_y + name_surf.get_height() + 6
             self.screen.blit(name_surf, (name_x, name_y))
             self.screen.blit(rating_surf, (rating_x, rating_y))
+            # Undo / Redo buttons area below name/rating
+            btn_font = pygame.font.Font(None, 28)
+            undo_text = "Undo"
+            redo_text = "Redo"
+            spacing = 14
+            btn_w = (self.side_panel_width - spacing*3)//2
+            btn_h = 42
+            btn_top = rating_y + rating_surf.get_height() + 30
+            undo_rect = pygame.Rect(side_panel_x + spacing, btn_top, btn_w, btn_h)
+            redo_rect = pygame.Rect(undo_rect.right + spacing, btn_top, btn_w, btn_h)
+            mouse_pos = pygame.mouse.get_pos()
+            def draw_btn(rect, label, enabled):
+                base_col = (75,75,85) if enabled else (60,60,65)
+                hover = rect.collidepoint(mouse_pos) and enabled
+                col = (95,95,110) if hover else base_col
+                pygame.draw.rect(self.screen, col, rect, border_radius=8)
+                pygame.draw.rect(self.screen, (120,120,130), rect, width=1, border_radius=8)
+                ts = btn_font.render(label, True, (230,230,235) if enabled else (150,150,155))
+                self.screen.blit(ts, ts.get_rect(center=rect.center))
+            can_undo = getattr(self.board_pieces_manager, 'history_index', 0) > 0
+            can_redo = getattr(self.board_pieces_manager, 'history_index', -1) < len(getattr(self.board_pieces_manager, 'move_history', [])) - 1
+            draw_btn(undo_rect, undo_text, can_undo)
+            draw_btn(redo_rect, redo_text, can_redo)
+            # Handle clicks
+            if event and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if undo_rect.collidepoint(event.pos) and can_undo:
+                    try:
+                        self.board_pieces_manager.undo_move()
+                    except Exception:
+                        pass
+                elif redo_rect.collidepoint(event.pos) and can_redo:
+                    try:
+                        self.board_pieces_manager.redo_move()
+                    except Exception:
+                        pass
         else:
             # Pre-game: show interactive side panel with scrolling content
             available_height = self.screen.get_height() - self.board_top_bar_height - self.bottom_pane_height

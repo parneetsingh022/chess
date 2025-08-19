@@ -77,6 +77,9 @@ class BoardPiecesManager:
         self.engine = None  # Lazy init when first needed
         self.engine_lock = threading.Lock()
         self.engine_thinking = False
+        self._engine_thread = None
+        # Suppress automatic engine replies after undo/redo until player makes a new move
+        self._suppress_engine_until_player_move = False
 
         # Reset/consent popups
         self.reset_popup = Popup(self.screen, "Are you sure you want to reset the game?", button_type="yesno", callbacks={"yes": self.reset_popup_yes, "no": self.reset_popup_no})
@@ -88,22 +91,27 @@ class BoardPiecesManager:
         self.resign_popup = Popup(self.screen, "Are you sure you want to resign?", button_type="yesno", callbacks={"yes": self._resign_yes, "no": lambda: None})
         self.opponent_resigned_popup = Popup(self.screen, "Opponent resigned. You win!", button_type="ok", callbacks={"ok": lambda: None})
 
-        # Initialize game state
-        self.reset()
-        self.event = None
-
         # Drag-and-drop state for pieces
         self.dragging = False
         self._drag_piece_index = None
         self._drag_pos = None  # screen pixel coords
         # Multiplayer: track opponent's last move (from_pos, to_pos) in 1-based coords
-        self.opponent_last_move = None 
+        self.opponent_last_move = None
         # Bot rating & timing (rating-based adaptive bot). Will be set on Start based on user selection.
         self.bot_rating = 400  # fallback baseline until user picks
         self.bot_move_delay = 0.6  # target total delay (thinking + post delay) lightweight
         self._engine_rating_config_applied = None  # track last rating applied to engine options
 
-        
+        # Move history for undo/redo
+        self.move_history = []
+        self.history_index = -1
+        # Flag to cancel an in-progress engine think when user undoes/redoes
+        self._cancel_think = False
+
+        # Initialize game state (after history fields defined so reset can use them)
+        self.reset()
+        self.event = None
+
 
     def add_event(self, event):
         self.event = event  
@@ -189,6 +197,11 @@ class BoardPiecesManager:
                     self._start_engine_think()
             except Exception:
                 pass
+        # Initialize history (only on full reset, not flip)
+        if not flip:
+            self.move_history.clear()
+            self.history_index = -1
+            self._push_history_snapshot()
 
     # Don't reset global game state here; menu/start flow controls it.
 
@@ -757,6 +770,10 @@ class BoardPiecesManager:
             try:
                 uci_move = f"{chr(ord('a') + from_x)}{8 - from_y}{chr(ord('a') + to_x)}{8 - to_y}{promotion_suffix}"
                 print(uci_move, flush=True)
+                # Record history after player's move
+                self._push_history_snapshot()
+                # Allow engine to think now (player initiated new move)
+                self._suppress_engine_until_player_move = False
                 self._start_engine_think()
             except Exception:
                 pass
@@ -907,6 +924,13 @@ class BoardPiecesManager:
             # Switch turn & record
             self.turn = "white" if self.turn == "black" else "black"
             self.last_moved_pos = (to_x + 1, to_y + 1)
+            # After engine (or opponent) move snapshot history (single-player only or multiplayer for local record)
+            try:
+                self._push_history_snapshot()
+                # Engine just moved; keep suppression False so future player move can trigger engine
+                self._suppress_engine_until_player_move = False
+            except Exception:
+                pass
 
         except Exception:
             pass
@@ -1003,36 +1027,44 @@ class BoardPiecesManager:
         """Spawn a background thread to compute and print engine reply after the move is visually settled."""
         if self.engine_thinking or game_state.multiplayer:
             return
+        # Honor suppression (e.g., after undo/redo) so engine waits for user's next manual move
+        if self._suppress_engine_until_player_move:
+            return
         # Mark thinking and start thread
         self.engine_thinking = True
+        self._cancel_think = False
 
         def _worker():
-            # Small delay to allow the frame with the moved piece to render
             start_time = time.time()
-            time.sleep(0.05)
+            time.sleep(0.05)  # allow render of player's move
             try:
                 with self.engine_lock:
                     self._ensure_engine()
                     if self.engine is None:
                         return
-                    fen = self._build_fen()
-                    board = chess.Board(fen)
-                    move, think_time_used = self._choose_bot_move(board)
-                    if move:
+                    board = chess.Board(self._build_fen())
+                    move, _think = self._choose_bot_move(board)
+                    if move and not self._cancel_think:
                         uci = move.uci()
                         print(f"engine:{uci}", flush=True)
                         elapsed = time.time() - start_time
-                        # If engine already spent more than target we apply immediately
                         remaining = self.bot_move_delay - elapsed
                         if remaining > 0:
-                            time.sleep(remaining)
-                        self.apply_uci_move(uci)
+                            slept = 0.0
+                            # Slice sleep to allow prompt cancellation
+                            while slept < remaining and not self._cancel_think:
+                                dt = min(0.02, remaining - slept)
+                                time.sleep(dt)
+                                slept += dt
+                        if not self._cancel_think:
+                            self.apply_uci_move(uci)
             except Exception:
                 pass
             finally:
                 self.engine_thinking = False
 
         t = threading.Thread(target=_worker, daemon=True)
+        self._engine_thread = t
         t.start()
 
     # ---------------- Rating-based bot helpers -----------------
@@ -1162,3 +1194,113 @@ class BoardPiecesManager:
             move = None
     # Debug end print removed
         return move, time.time() - start
+
+    # ---------------- Undo / Redo helpers -----------------
+    def _snapshot_state(self) -> dict:
+        """Capture current board state for undo/redo."""
+        return {
+            'layout': [row[:] for row in self.layout],
+            'turn': self.turn,
+            'white_king_moved': self.white_king_moved,
+            'black_king_moved': self.black_king_moved,
+            'white_rook1_moved': self.white_rook1_moved,
+            'white_rook2_moved': self.white_rook2_moved,
+            'black_rook1_moved': self.black_rook1_moved,
+            'black_rook2_moved': self.black_rook2_moved,
+            'en_passant_target': self.en_passant_target,
+            'last_moved_pos': self.last_moved_pos,
+            'is_check_mate': self.is_check_mate,
+        }
+
+    def _restore_state(self, snap: dict):
+        self.layout = [row[:] for row in snap['layout']]
+        self.pieces = self._initialize_pieces()
+        self.turn = snap['turn']
+        self.white_king_moved = snap['white_king_moved']
+        self.black_king_moved = snap['black_king_moved']
+        self.white_rook1_moved = snap['white_rook1_moved']
+        self.white_rook2_moved = snap['white_rook2_moved']
+        self.black_rook1_moved = snap['black_rook1_moved']
+        self.black_rook2_moved = snap['black_rook2_moved']
+        self.en_passant_target = snap['en_passant_target']
+        self.last_moved_pos = snap['last_moved_pos']
+        self.is_check_mate = snap['is_check_mate']
+        # Re-evaluate check position
+        try:
+            self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+            if self.player == "black" and king_pos_c:
+                king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
+            game_state.check_position = king_pos_c if self.is_under_check else None
+        except Exception:
+            pass
+        self.selected_piece = None
+        self.selected_possible_moves = []
+
+    def _push_history_snapshot(self):
+        # Truncate forward history if we branched
+        if self.history_index < len(self.move_history) - 1:
+            self.move_history = self.move_history[:self.history_index + 1]
+        self.move_history.append(self._snapshot_state())
+        self.history_index = len(self.move_history) - 1
+
+    def undo_move(self):
+        """Undo last full turn (your move plus opponent/engine reply) when possible.
+        If the opponent reply hasn't happened yet (engine turn), only your last move is undone.
+        """
+        if self.history_index <= 0:
+            return
+        if self.engine_thinking:
+            self._cancel_think = True
+            try:
+                if self._engine_thread and self._engine_thread.is_alive():
+                    self._engine_thread.join(timeout=0.05)
+            except Exception:
+                pass
+        # Determine human player's color string
+        player_color = self.player  # 'white' or 'black'
+        # Step back one ply
+        steps = 0
+        while steps < 2 and self.history_index > 0:
+            self.history_index -= 1
+            self._restore_state(self.move_history[self.history_index])
+            steps += 1
+            # Stop if after undo it's player's turn (full turn undone)
+            if self.turn == player_color:
+                break
+        # Suppress automatic engine move until player acts
+        self._suppress_engine_until_player_move = True
+        # Play move sound to give feedback
+        try:
+            get_sound_manager().play_move()
+        except Exception:
+            pass
+
+    def redo_move(self):
+        """Redo next full turn (your move plus engine reply) when both plies exist.
+        If only your move exists ahead (engine reply not yet in history), redo just that ply.
+        """
+        if self.history_index >= len(self.move_history) - 1:
+            return
+        if self.engine_thinking:
+            self._cancel_think = True
+            try:
+                if self._engine_thread and self._engine_thread.is_alive():
+                    self._engine_thread.join(timeout=0.05)
+            except Exception:
+                pass
+        player_color = self.player
+        steps = 0
+        while steps < 2 and self.history_index < len(self.move_history) - 1:
+            self.history_index += 1
+            self._restore_state(self.move_history[self.history_index])
+            steps += 1
+            if self.turn != player_color:  # engine to move means pair complete
+                break
+        # Keep suppression so engine does not auto-fire after redo placing position at engine's move
+        if self.turn != player_color:
+            self._suppress_engine_until_player_move = True
+        # Play move sound for feedback
+        try:
+            get_sound_manager().play_move()
+        except Exception:
+            pass
