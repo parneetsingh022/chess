@@ -14,6 +14,13 @@ from constants.fonts import CHECK_MATETEXT_MAIN
 from states.gamestate import game_state
 from utils.network.lan import send_move, recv_message, send_reset, send_reset_request, send_reset_accept, send_reset_reject
 from utils.sound_manager import get_sound_manager
+import chess, chess.engine
+import random
+import os
+import threading
+import time
+
+
 
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved, en_passant_target=None):
@@ -65,6 +72,11 @@ class BoardPiecesManager:
         self.board_top_bar_height = board_top_bar_height
         self.turn_indicator_height = 5
         self.turn_indicator = TurnIndicator(self.screen.get_width(), self.turn_indicator_height)
+        # Stockfish engine integration (path provided by user)
+        self.engine_path = r"C:\\Users\\parne\\OneDrive\\Documents\\chess2\\stockfish\\stockfish-windows-x86-64-avx2.exe"
+        self.engine = None  # Lazy init when first needed
+        self.engine_lock = threading.Lock()
+        self.engine_thinking = False
 
         # Reset/consent popups
         self.reset_popup = Popup(self.screen, "Are you sure you want to reset the game?", button_type="yesno", callbacks={"yes": self.reset_popup_yes, "no": self.reset_popup_no})
@@ -85,7 +97,11 @@ class BoardPiecesManager:
         self._drag_piece_index = None
         self._drag_pos = None  # screen pixel coords
         # Multiplayer: track opponent's last move (from_pos, to_pos) in 1-based coords
-        self.opponent_last_move = None
+        self.opponent_last_move = None 
+        # Bot rating & timing (rating-based adaptive bot). Default rating 300.
+        self.bot_rating = 3000
+        self.bot_move_delay = 0.6  # target total delay (thinking + post delay) lightweight
+        self._engine_rating_config_applied = None  # track last rating applied to engine options
 
         
 
@@ -596,7 +612,6 @@ class BoardPiecesManager:
                 break
 
     def move_piece(self, to_pos):
-        
         if game_state.pop_up_on:
             return
         if not self.selected_piece:
@@ -604,15 +619,12 @@ class BoardPiecesManager:
 
         from_pos = self.selected_piece
         if to_pos == from_pos:
-            # Treat as a simple click on the selected piece: keep selection so click-to-move works
-            return
+            return  # No movement
 
-        # Convert 1-based to 0-based coordinates for layout access
         from_x, from_y = int(from_pos[0]) - 1, int(from_pos[1]) - 1
         to_x, to_y = int(to_pos[0]) - 1, int(to_pos[1]) - 1
 
-        # Check if to_pos is within the bounds of the board
-        if not (0 <= to_x < len(self.layout[0]) and 0 <= to_y < len(self.layout)):
+        if not (0 <= to_x < 8 and 0 <= to_y < 8):
             self.selected_piece = None
             self.selected_possible_moves = []
             return
@@ -620,138 +632,125 @@ class BoardPiecesManager:
         if (to_x + 1, to_y + 1) not in self.selected_possible_moves:
             self.selected_piece = None
             self.selected_possible_moves = []
-
             if self.layout[to_y][to_x] and self.layout[to_y][to_x][0] == self.layout[from_y][from_x][0]:
                 self.select_piece(to_pos)
             return
 
         game_state.in_game = True
-        captured_piece_index = None  # Track index of captured piece for removal
+        captured_piece_index = None
+        promotion_suffix = ""
+        moved = False
 
         for i, (piece, x, y) in enumerate(self.pieces):
-            if (x - 1, y - 1) == (from_x, from_y):
-                # Track previous en passant target, and clear for this move unless set again by a double pawn move
-                prev_en_passant = self.en_passant_target
-                self.en_passant_target = None
+            if (x - 1, y - 1) != (from_x, from_y):
+                continue
 
-                # Check if there is an opponent piece at the destination
-                if self.layout[to_y][to_x] != "":
-                    captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))
+            prev_en_passant = self.en_passant_target
+            self.en_passant_target = None
+
+            if self.layout[to_y][to_x] != "":
+                captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))
+            else:
+                if piece.piece_type == PieceType.PAWN and prev_en_passant == (to_x + 1, to_y + 1) and abs(to_x - from_x) == 1:
+                    cap_index = self._get_piece_index_at_pos((to_x + 1, from_y + 1))
+                    if cap_index is not None:
+                        self.layout[from_y][to_x] = ""
+                        captured_piece_index = cap_index
+
+            # Update layout
+            self.layout[from_y][from_x] = ""
+            pname = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
+            if piece.piece_type == PieceType.KNIGHT:
+                pname = f"{piece.piece_color.name[0]}N"
+            self.layout[to_y][to_x] = pname
+            self.pieces[i] = (piece, to_x + 1, to_y + 1)
+
+            # Castling
+            if piece.piece_type == PieceType.KING:
+                if piece.piece_color == PieceColor.WHITE:
+                    self.white_king_moved = True
                 else:
-                    # Handle en passant capture: destination empty but equals previous en_passant_target
-                    if piece.piece_type == PieceType.PAWN and prev_en_passant == (to_x + 1, to_y + 1):
-                        if abs(to_x - from_x) == 1:
-                            cap_pos_1b = (to_x + 1, from_y + 1)
-                            cap_index = self._get_piece_index_at_pos(cap_pos_1b)
-                            if cap_index is not None:
-                                # Remove captured pawn from layout and pieces
-                                self.layout[from_y][to_x] = ""
-                                captured_piece_index = cap_index
+                    self.black_king_moved = True
+                if abs(to_x - from_x) == 2:
+                    rook_from_x, rook_to_x = (7, to_x - 1) if to_x > from_x else (0, to_x + 1)
+                    rook_y = from_y
+                    r_index = self._get_piece_index_at_pos((rook_from_x + 1, rook_y + 1))
+                    if r_index is not None:
+                        rook_piece, _, _ = self.pieces[r_index]
+                        self.layout[rook_y][rook_from_x] = ""
+                        self.layout[rook_y][rook_to_x] = f"{rook_piece.piece_color.name[0]}{rook_piece.piece_type.name[0]}"
+                        self.pieces[r_index] = (rook_piece, rook_to_x + 1, rook_y + 1)
 
-                # Update the layout for the moved piece
-                self.layout[from_y][from_x] = ""
-                pname = f"{piece.piece_color.name[0]}{piece.piece_type.name[0]}"
-                if piece.piece_type == PieceType.KNIGHT:
-                    pname = f"{piece.piece_color.name[0]}N"
-                self.layout[to_y][to_x] = pname
-
-                # Move the piece in self.pieces
-                self.pieces[i] = (piece, to_x + 1, to_y + 1)
-
-                # Set king_moved to True if the piece is a king and handle castling
-                if piece.piece_type == PieceType.KING:
-                    if piece.piece_color == PieceColor.WHITE:
-                        self.white_king_moved = True
-                    else:
-                        self.black_king_moved = True
-
-                    # Check for castling move
-                    if abs(to_x - from_x) == 2:
-                        if to_x > from_x:
-                            # Kingside castling
-                            rook_from_x = 7
-                            rook_to_x = to_x - 1
-                        else:
-                            # Queenside castling
-                            rook_from_x = 0
-                            rook_to_x = to_x + 1
-
-                        rook_y = from_y
-                        rook_piece_index = self._get_piece_index_at_pos((rook_from_x + 1, rook_y + 1))
-                        if rook_piece_index is not None:
-                            rook_piece, _, _ = self.pieces[rook_piece_index]
-                            self.layout[rook_y][rook_from_x] = ""
-                            self.layout[rook_y][rook_to_x] = f"{rook_piece.piece_color.name[0]}{rook_piece.piece_type.name[0]}"
-                            self.pieces[rook_piece_index] = (rook_piece, rook_to_x + 1, rook_y + 1)
-
-                # Set rook_moved to True if the piece is a rook
-                if piece.piece_type == PieceType.ROOK:
-                    if piece.piece_color == PieceColor.WHITE:
-                        if from_x == 0 and from_y == 7:
-                            self.white_rook1_moved = True
-                        elif from_x == 7 and from_y == 7:
-                            self.white_rook2_moved = True
-                    else:
-                        if from_x == 0 and from_y == 0:
-                            self.black_rook1_moved = True
-                        elif from_x == 7 and from_y == 0:
-                            self.black_rook2_moved = True
-
-                if piece.piece_type == PieceType.PAWN:
-                    prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
-
-                    if ((to_y + 1) == 8 or (to_y + 1) == 1):
-                        selected_piece_type = self.handle_promotion_selection((to_x, to_y), piece.piece_color)
-                        postfix = selected_piece_type.name[0] if selected_piece_type != PieceType.KNIGHT else "N"
-                        self.layout[to_y][to_x] = f"{prefix}{postfix}"
-                        self.pieces[i] = (
-                            Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color),
-                            to_x + 1,
-                            to_y + 1,
-                        )
-                    # Set en passant target if a pawn moved two squares
-                    if abs(to_y - from_y) == 2:
-                        direction = -1 if piece.piece_color == PieceColor.WHITE else 1
-                        self.en_passant_target = (from_x + 1, from_y + 1 + direction)
-
-                self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
-                if self.player == "black":
-                    king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
-
-                if self.is_under_check:
-                    game_state.check_position = king_pos_c
+            # Rook movement flags
+            if piece.piece_type == PieceType.ROOK:
+                if piece.piece_color == PieceColor.WHITE:
+                    if from_x == 0 and from_y == 7:
+                        self.white_rook1_moved = True
+                    elif from_x == 7 and from_y == 7:
+                        self.white_rook2_moved = True
                 else:
-                    game_state.check_position = None
+                    if from_x == 0 and from_y == 0:
+                        self.black_rook1_moved = True
+                    elif from_x == 7 and from_y == 0:
+                        self.black_rook2_moved = True
 
-                # Play sounds: capture vs move
-                sm = get_sound_manager()
-                if captured_piece_index is not None:
-                    sm.play_capture()
-                else:
-                    sm.play_move()
+            # Pawn promotion & en passant target
+            if piece.piece_type == PieceType.PAWN:
+                prefix = "B" if piece.piece_color == PieceColor.BLACK else "W"
+                if (to_y + 1) in (8, 1):
+                    selected_piece_type = self.handle_promotion_selection((to_x, to_y), piece.piece_color)
+                    postfix = selected_piece_type.name[0] if selected_piece_type != PieceType.KNIGHT else "N"
+                    self.layout[to_y][to_x] = f"{prefix}{postfix}"
+                    self.pieces[i] = (
+                        Piece(self.screen, self.square_size, self.player, selected_piece_type, piece.piece_color),
+                        to_x + 1,
+                        to_y + 1,
+                    )
+                    promotion_suffix = postfix.lower()
+                if abs(to_y - from_y) == 2:
+                    direction = -1 if piece.piece_color == PieceColor.WHITE else 1
+                    self.en_passant_target = (from_x + 1, from_y + 1 + direction)
 
-                self.turn = "white" if self.turn == "black" else "black"
-                self.last_moved_pos = (to_x + 1, to_y + 1)
-                break
+            self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+            if self.player == "black" and king_pos_c:
+                king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
+            game_state.check_position = king_pos_c if self.is_under_check else None
 
-        # Remove the captured piece after the loop (to avoid list modification issues during iteration)
+            sm = get_sound_manager()
+            if captured_piece_index is not None:
+                sm.play_capture()
+            else:
+                sm.play_move()
+
+            self.turn = "white" if self.turn == "black" else "black"
+            self.last_moved_pos = (to_x + 1, to_y + 1)
+            moved = True
+            break
+
         if captured_piece_index is not None:
             self.pieces.pop(captured_piece_index)
 
-        # Broadcast move over network if in multiplayer and we moved a piece
-        if game_state.multiplayer and game_state.net_socket is not None and from_pos is not None:
+        if game_state.multiplayer and game_state.net_socket is not None and from_pos is not None and moved:
             try:
                 send_move(game_state.net_socket, from_pos, to_pos)
             except Exception:
                 pass
 
-        # After move, if opponent king is in check, play check sound
-        try:
-            sm = get_sound_manager()
-            if game_state.check_position is not None:
-                sm.play_check()
-        except Exception:
-            pass
+        if moved:
+            try:
+                sm = get_sound_manager()
+                if game_state.check_position is not None:
+                    sm.play_check()
+            except Exception:
+                pass
+
+        if moved and not game_state.multiplayer:
+            try:
+                uci_move = f"{chr(ord('a') + from_x)}{8 - from_y}{chr(ord('a') + to_x)}{8 - to_y}{promotion_suffix}"
+                print(uci_move, flush=True)
+                self._start_engine_think()
+            except Exception:
+                pass
 
         self.selected_piece = None
         self.selected_possible_moves = []
@@ -762,3 +761,382 @@ class BoardPiecesManager:
             if (x, y) == pos:
                 return i
         return None
+
+    # ---------------- UCI move application -----------------
+    def apply_uci_move(self, uci_move: str):
+        """Apply a UCI move (e.g. e2e4, g7g8q) to the internal board state and update game flags.
+        Assumes the move is legal in the current position (minimal validation).
+        """
+        try:
+            if not uci_move or len(uci_move) < 4:
+                return
+            from_file = uci_move[0]
+            from_rank = int(uci_move[1])
+            to_file = uci_move[2]
+            to_rank = int(uci_move[3])
+            promotion = uci_move[4] if len(uci_move) > 4 else None
+
+            from_x = ord(from_file) - ord('a')
+            from_y = 8 - from_rank
+            to_x = ord(to_file) - ord('a')
+            to_y = 8 - to_rank
+
+            if not (0 <= from_x < 8 and 0 <= from_y < 8 and 0 <= to_x < 8 and 0 <= to_y < 8):
+                return
+
+            piece_code = self.layout[from_y][from_x]
+            if not piece_code:
+                return
+
+            piece_index = self._get_piece_index_at_pos((from_x + 1, from_y + 1))
+            if piece_index is None:
+                return
+
+            piece_obj, _, _ = self.pieces[piece_index]
+
+            captured_piece_index = None
+            prev_en_passant = self.en_passant_target
+            self.en_passant_target = None
+
+            target_code = self.layout[to_y][to_x]
+            # Detect en passant capture (pawn moves diagonally to empty square which matches previous en passant target)
+            if piece_obj.piece_type == PieceType.PAWN and target_code == "" and from_x != to_x and prev_en_passant == (to_x + 1, to_y + 1):
+                # The captured pawn is on the from rank at the to file
+                cap_index = self._get_piece_index_at_pos((to_x + 1, from_y + 1))
+                if cap_index is not None:
+                    self.layout[from_y][to_x] = ""  # remove the pawn behind
+                    captured_piece_index = cap_index
+            elif target_code != "":
+                captured_piece_index = self._get_piece_index_at_pos((to_x + 1, to_y + 1))
+
+            # Move piece on layout
+            self.layout[from_y][from_x] = ""
+            self.layout[to_y][to_x] = piece_code
+            self.pieces[piece_index] = (piece_obj, to_x + 1, to_y + 1)
+
+            # Castling (king moves two squares)
+            if piece_obj.piece_type == PieceType.KING and abs(to_x - from_x) == 2:
+                if piece_obj.piece_color == PieceColor.WHITE:
+                    self.white_king_moved = True
+                else:
+                    self.black_king_moved = True
+                rook_from_x, rook_to_x = (7, to_x - 1) if to_x > from_x else (0, to_x + 1)
+                rook_y = from_y
+                r_index = self._get_piece_index_at_pos((rook_from_x + 1, rook_y + 1))
+                if r_index is not None:
+                    rook_piece, _, _ = self.pieces[r_index]
+                    self.layout[rook_y][rook_from_x] = ""
+                    self.layout[rook_y][rook_to_x] = f"{rook_piece.piece_color.name[0]}{rook_piece.piece_type.name[0] if rook_piece.piece_type != PieceType.KNIGHT else 'N'}"
+                    self.pieces[r_index] = (rook_piece, rook_to_x + 1, rook_y + 1)
+            else:
+                # Update king/rook moved flags when they move normally
+                if piece_obj.piece_type == PieceType.KING:
+                    if piece_obj.piece_color == PieceColor.WHITE:
+                        self.white_king_moved = True
+                    else:
+                        self.black_king_moved = True
+                elif piece_obj.piece_type == PieceType.ROOK:
+                    if piece_obj.piece_color == PieceColor.WHITE:
+                        if from_x == 0 and from_y == 7:
+                            self.white_rook1_moved = True
+                        elif from_x == 7 and from_y == 7:
+                            self.white_rook2_moved = True
+                    else:
+                        if from_x == 0 and from_y == 0:
+                            self.black_rook1_moved = True
+                        elif from_x == 7 and from_y == 0:
+                            self.black_rook2_moved = True
+
+            # Pawn specific: promotion & new en passant target
+            if piece_obj.piece_type == PieceType.PAWN:
+                # Two-square advance creates en passant target
+                if abs(to_y - from_y) == 2:
+                    direction = -1 if piece_obj.piece_color == PieceColor.WHITE else 1
+                    self.en_passant_target = (from_x + 1, from_y + 1 + direction)
+                # Promotion
+                if promotion:
+                    promo_map = {
+                        'q': PieceType.QUEEN,
+                        'r': PieceType.ROOK,
+                        'b': PieceType.BISHOP,
+                        'n': PieceType.KNIGHT
+                    }
+                    ptype = promo_map.get(promotion.lower())
+                    if ptype:
+                        prefix = 'W' if piece_obj.piece_color == PieceColor.WHITE else 'B'
+                        postfix = ptype.name[0] if ptype != PieceType.KNIGHT else 'N'
+                        self.layout[to_y][to_x] = f"{prefix}{postfix}"
+                        # Replace piece object
+                        new_piece = Piece(self.screen, self.square_size, self.player, ptype, piece_obj.piece_color)
+                        self.pieces[piece_index] = (new_piece, to_x + 1, to_y + 1)
+
+            # Remove captured piece from list
+            if captured_piece_index is not None:
+                try:
+                    self.pieces.pop(captured_piece_index)
+                except Exception:
+                    pass
+
+            # Update check state
+            self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
+            if self.player == "black" and king_pos_c:
+                king_pos_c = (9 - king_pos_c[0], 9 - king_pos_c[1])
+            game_state.check_position = king_pos_c if self.is_under_check else None
+
+            # Sounds
+            try:
+                sm = get_sound_manager()
+                if captured_piece_index is not None:
+                    sm.play_capture()
+                else:
+                    sm.play_move()
+                if game_state.check_position is not None:
+                    sm.play_check()
+            except Exception:
+                pass
+
+            # Switch turn & record
+            self.turn = "white" if self.turn == "black" else "black"
+            self.last_moved_pos = (to_x + 1, to_y + 1)
+
+        except Exception:
+            pass
+
+    # ---------------- Stockfish helpers -----------------
+    def _ensure_engine(self):
+        if self.engine is None:
+            try:
+                if os.path.exists(self.engine_path):
+                    self.engine = chess.engine.SimpleEngine.popen_uci(self.engine_path)
+            except Exception:
+                self.engine = None
+
+    def _build_fen(self):
+        """Construct a (approximate) FEN string from current internal state for engine query."""
+        piece_letter_map = {"P": "p", "R": "r", "N": "n", "B": "b", "Q": "q", "K": "k"}
+        rows = []
+        for y in range(8):  # y=0 is rank 8
+            fen_row = ""
+            empty = 0
+            for x in range(8):
+                code = self.layout[y][x]
+                if not code:
+                    empty += 1
+                else:
+                    if empty:
+                        fen_row += str(empty)
+                        empty = 0
+                    color = code[0]
+                    p = piece_letter_map.get(code[1], "?")
+                    if color == "W":
+                        p = p.upper()
+                    fen_row += p
+            if empty:
+                fen_row += str(empty)
+            rows.append(fen_row)
+        board_part = "/".join(rows)
+
+        active = 'w' if self.turn == 'white' else 'b'
+
+        rights = ''
+        # White castling rights
+        try:
+            if (not self.white_king_moved and not self.white_rook2_moved and
+                self.layout[7][4] == 'WK' and self.layout[7][7].startswith('WR')):
+                rights += 'K'
+            if (not self.white_king_moved and not self.white_rook1_moved and
+                self.layout[7][4] == 'WK' and self.layout[7][0].startswith('WR')):
+                rights += 'Q'
+            # Black castling rights
+            if (not self.black_king_moved and not self.black_rook2_moved and
+                self.layout[0][4] == 'BK' and self.layout[0][7].startswith('BR')):
+                rights += 'k'
+            if (not self.black_king_moved and not self.black_rook1_moved and
+                self.layout[0][4] == 'BK' and self.layout[0][0].startswith('BR')):
+                rights += 'q'
+        except Exception:
+            pass
+        if rights == '':
+            rights = '-'
+
+        # En passant target
+        if self.en_passant_target:
+            ex, ey_top = self.en_passant_target  # 1-based with top rank =1
+            file_c = chr(ord('a') + ex - 1)
+            rank_c = str(9 - ey_top)  # convert to chess rank
+            ep = f"{file_c}{rank_c}"
+        else:
+            ep = '-'
+
+        # Halfmove clock & fullmove number (approximate: reset halfmove each move, fullmove floor)
+        halfmove = 0
+        fullmove = 1
+        return f"{board_part} {active} {rights} {ep} {halfmove} {fullmove}"
+
+    def _print_engine_best_move(self):
+        # Synchronous computation (protected by lock); prefer using _start_engine_think
+        if game_state.multiplayer or self.engine_thinking:
+            return
+        with self.engine_lock:
+            self._ensure_engine()
+            if self.engine is None:
+                return
+            try:
+                fen = self._build_fen()
+                board = chess.Board(fen)
+                move, _ = self._choose_bot_move(board)
+                if move:
+                    print(f"engine:{move.uci()}", flush=True)
+            except Exception:
+                pass
+
+    def _start_engine_think(self):
+        """Spawn a background thread to compute and print engine reply after the move is visually settled."""
+        if self.engine_thinking or game_state.multiplayer:
+            return
+        # Mark thinking and start thread
+        self.engine_thinking = True
+
+        def _worker():
+            # Small delay to allow the frame with the moved piece to render
+            start_time = time.time()
+            time.sleep(0.05)
+            try:
+                with self.engine_lock:
+                    self._ensure_engine()
+                    if self.engine is None:
+                        return
+                    fen = self._build_fen()
+                    board = chess.Board(fen)
+                    move, think_time_used = self._choose_bot_move(board)
+                    if move:
+                        uci = move.uci()
+                        print(f"engine:{uci}", flush=True)
+                        elapsed = time.time() - start_time
+                        # If engine already spent more than target we apply immediately
+                        remaining = self.bot_move_delay - elapsed
+                        if remaining > 0:
+                            time.sleep(remaining)
+                        self.apply_uci_move(uci)
+            except Exception:
+                pass
+            finally:
+                self.engine_thinking = False
+
+        t = threading.Thread(target=_worker, daemon=True)
+        t.start()
+
+    # ---------------- Rating-based bot helpers -----------------
+    def set_bot_rating(self, rating: int):
+        """Set target bot rating (approximate)."""
+        try:
+            r = int(rating)
+        except Exception:
+            r = 300
+        self.bot_rating = max(300, min(r, 3000))
+
+    def _configure_engine_strength(self):
+        """Configure Stockfish built-in Elo limiting where possible (floor ~800-1000 depending on build).
+        For very low requested ratings we still set the minimum and inject blunders separately.
+        """
+        if self.engine is None:
+            return
+        target = self.bot_rating
+        # Stockfish typical supported range (approx) 1320-3190; we'll clamp.
+        min_supported = 1320
+        max_supported = 3190
+        effective = max(min_supported, min(target, max_supported))
+        if self._engine_rating_config_applied == effective:
+            return
+        try:
+            self.engine.configure({
+                "UCI_LimitStrength": True,
+                "UCI_Elo": effective
+            })
+            self._engine_rating_config_applied = effective
+        except Exception:
+            pass
+
+    def _choose_bot_move(self, board: chess.Board):
+        """Return (move, think_time_used) for current bot rating.
+        Heuristic mapping rating -> think time, blunder chance, inaccuracy mode.
+        """
+        rating = self.bot_rating
+        # Map rating to think time (seconds)
+        think_time = (
+            0.01 if rating <= 500 else
+            0.02 if rating <= 700 else
+            0.04 if rating <= 900 else
+            0.07 if rating <= 1100 else
+            0.12 if rating <= 1400 else
+            0.2 if rating <= 1700 else
+            0.35 if rating <= 2000 else
+            0.5 if rating <= 2400 else
+            0.7 if rating <= 2700 else
+            1.0
+        )
+        # Total target delay scales lightly with rating (faster reply lower rating)
+        self.bot_move_delay = min(1.2, 0.4 + think_time * 1.2)
+
+        # Blunder chance for very low ratings (<= 1200). Drops linearly to 0 at 1200.
+        blunder_chance = 0.0
+        if rating < 1200:
+            blunder_chance = min(0.6, (1200 - rating) / 1200 * 0.6)
+
+        # Inaccuracy (choose among top N) chance for sub 1600
+        inaccuracy_chance = 0.0
+        if rating < 1600:
+            inaccuracy_chance = 0.15 + (1600 - rating) / 1600 * 0.25  # up to 0.4
+
+        start = time.time()
+        move = None
+        try:
+            self._configure_engine_strength()
+            if self.engine is None:
+                return None, 0.0
+
+            legal_moves = list(board.legal_moves)
+            if not legal_moves:
+                return None, 0.0
+
+            # Decide if forcing blunder: choose random legal move (avoid obviously losing king moves by naive filter)
+            if random.random() < blunder_chance:
+                move = random.choice(legal_moves)
+                return move, time.time() - start
+
+            # Determine number of candidate moves to sample if inaccuracy
+            use_multipv = 1
+            if random.random() < inaccuracy_chance:
+                # More candidates for lower rating
+                use_multipv = 3 if rating < 1000 else 2
+            # Analyse with MultiPV when needed; fallback to play for speed when only 1
+            if use_multipv == 1:
+                result = self.engine.play(board, chess.engine.Limit(time=think_time))
+                move = result.move if result else None
+            else:
+                infos = self.engine.analyse(board, chess.engine.Limit(time=think_time), multipv=use_multipv)
+                # infos is list of dicts, each has 'pv' principal variation
+                candidates = []
+                for info in infos:
+                    pv = info.get('pv')
+                    if pv:
+                        candidates.append(pv[0])
+                if not candidates:
+                    result = self.engine.play(board, chess.engine.Limit(time=think_time/2))
+                    move = result.move if result else None
+                else:
+                    # Weighted random: earlier PV higher weight
+                    weights = [1.0 / (i+1) for i in range(len(candidates))]
+                    total = sum(weights)
+                    r = random.random() * total
+                    upto = 0
+                    for w, m in zip(weights, candidates):
+                        if upto + w >= r:
+                            move = m
+                            break
+                        upto += w
+                    if move is None:
+                        move = candidates[0]
+        except Exception:
+            move = None
+        return move, time.time() - start
