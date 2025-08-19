@@ -15,33 +15,52 @@ class PieceColor(Enum):
     WHITE = 1
 
 class Piece:
+    # Class-level caches to avoid reloading & rescaling every frame
+    _sprite_sheet: pygame.Surface | None = None
+    _sprite_piece_w = 128
+    _sprite_piece_h = 128
+    _surface_cache: dict[tuple[int, PieceType, PieceColor], pygame.Surface] = {}
+    _mini_cache: dict[tuple[int, PieceType, PieceColor], pygame.Surface] = {}
+
+    @classmethod
+    def _ensure_sheet(cls):
+        if cls._sprite_sheet is None:
+            cls._sprite_sheet = pygame.image.load(resource_path("assets/chess_pieces_edited.png")).convert_alpha()
+
+    @classmethod
+    def get_surface(cls, size: int, piece_type: PieceType, piece_color: PieceColor) -> pygame.Surface:
+        """Return a cached (size x size) surface for given piece specification."""
+        cls._ensure_sheet()
+        key = (size, piece_type, piece_color)
+        cache = cls._surface_cache
+        surf = cache.get(key)
+        if surf is not None:
+            return surf
+        # Extract raw subsurface
+        row = piece_color.value
+        col = piece_type.value
+        rect = pygame.Rect(col * cls._sprite_piece_w, row * cls._sprite_piece_h, cls._sprite_piece_w, cls._sprite_piece_h)
+        raw = cls._sprite_sheet.subsurface(rect)  # type: ignore[arg-type]
+        if size == cls._sprite_piece_w:  # unlikely but guard
+            surf = raw
+        else:
+            # smoothscale once
+            surf = pygame.transform.smoothscale(raw, (size, size))
+        cache[key] = surf
+        return surf
+
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, piece_type: PieceType, piece_color: PieceColor):
         self.screen = screen
         self.square_size = square_size
         self.player = player
         self.piece_type = piece_type
         self.piece_color = piece_color
-
-        self.piece_width = 128  # Assuming each piece is 128x128 pixels
-        self.piece_height = 128
-        self.image = pygame.image.load(resource_path("assets/chess_pieces_edited.png")).convert_alpha()
+        # Pre-fetch scaled surface (cached) for main board size
+        self._board_surface = self.get_surface(self.square_size, self.piece_type, self.piece_color)
 
     def _extract_piece(self):
-        """
-        Extract a piece based on its row and column in the grid.
-
-        Args:
-            row (int): The row of the piece in the grid.
-            col (int): The column of the piece in the grid.
-
-        Returns:
-            pygame.Surface: The surface containing the extracted piece.
-        """
-        row = self.piece_color.value
-        col = self.piece_type.value
-
-        rect = pygame.Rect(col * self.piece_width, row * self.piece_height, self.piece_width, self.piece_height)
-        return self.image.subsurface(rect)
+        # Kept for backward compatibility; now returns cached board-sized surface
+        return self._board_surface
     
     def display(self, x, y, board_top_bar_height: int, absolute_coordinates: bool = False):
         """
@@ -63,13 +82,15 @@ class Piece:
             x = (x - 1) * self.square_size
             y = (y - 1) * self.square_size + board_top_bar_height
 
-        piece = self._extract_piece()
+        # Board-sized cached surface already scaled
+        surf = self._board_surface
+        # If square_size changed dynamically (resize), refresh
+        if surf.get_width() != self.square_size:
+            self._board_surface = self.get_surface(self.square_size, self.piece_type, self.piece_color)
+            surf = self._board_surface
+        self.screen.blit(surf, (x, y))
 
-        # Calculate the new size for the piece
-        new_size = (self.square_size, self.square_size)
-
-        # Resize the piece using smoothscale for better quality
-        resized_piece = pygame.transform.smoothscale(piece, new_size)
-
-        # Display the resized piece on the screen
-        self.screen.blit(resized_piece, (x, y))
+    @staticmethod
+    def get_mini_surface(size: int, piece_type: PieceType, piece_color: PieceColor) -> pygame.Surface:
+        # Convenience for external panels; uses same cache
+        return Piece.get_surface(size, piece_type, piece_color)

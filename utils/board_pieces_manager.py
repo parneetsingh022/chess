@@ -101,12 +101,16 @@ class BoardPiecesManager:
         self.bot_rating = 400  # fallback baseline until user picks
         self.bot_move_delay = 0.6  # target total delay (thinking + post delay) lightweight
         self._engine_rating_config_applied = None  # track last rating applied to engine options
-
-        # Move history for undo/redo
-        self.move_history = []
-        self.history_index = -1
+        # Move history for undo/redo (duplicate guard: only initialize if not already set)
+        if not hasattr(self, 'move_history'):
+            self.move_history = []
+            self.history_index = -1
         # Flag to cancel an in-progress engine think when user undoes/redoes
         self._cancel_think = False
+        # Captured pieces lists (store piece codes like 'WP','BQ') for UI display
+        if not hasattr(self, 'captured_by_white'):
+            self.captured_by_white = []  # pieces white has captured (black pieces)
+            self.captured_by_black = []  # pieces black has captured (white pieces)
 
         # Initialize game state (after history fields defined so reset can use them)
         self.reset()
@@ -186,6 +190,10 @@ class BoardPiecesManager:
 
         self.last_moved_pos = None
         self.opponent_last_move = None
+        # Clear captured lists only on full reset (not flip)
+        if not flip:
+            self.captured_by_white.clear()
+            self.captured_by_black.clear()
 
         # En passant: target square available for en passant capture on the immediate next move
         self.en_passant_target = None
@@ -474,62 +482,68 @@ class BoardPiecesManager:
             if self.opponent_resigned_popup.handle_event(self.event):
                 return
 
-            # Drag-and-click interactions for pieces (left mouse)
-            if self.event.type == pygame.MOUSEBUTTONDOWN and self.event.button == 1:
-                pos = self._pixel_to_square(*self.event.pos)
-                if pos is not None:
-                    if self.selected_piece:
-                        # If clicking on the already selected piece, start dragging
-                        if pos == self.selected_piece and settings_file_manager.get_setting("drag_drop"):
-                            idx = self._get_piece_index_at_pos(self.selected_piece)
-                            if idx is not None:
-                                self.dragging = True
-                                self._drag_piece_index = idx
-                                self._drag_pos = self.event.pos
-                                # Change cursor to hand while dragging
+        # Draw captured pieces preview in side panel area (right of board)
+        try:
+            self._draw_captured_pieces_panel()
+        except Exception:
+            pass
+
+        # Drag-and-click interactions for pieces (left mouse)
+        if self.event and self.event.type == pygame.MOUSEBUTTONDOWN and self.event.button == 1:
+            pos = self._pixel_to_square(*self.event.pos)
+            if pos is not None:
+                if self.selected_piece:
+                    # If clicking on the already selected piece, start dragging
+                    if pos == self.selected_piece and settings_file_manager.get_setting("drag_drop"):
+                        idx = self._get_piece_index_at_pos(self.selected_piece)
+                        if idx is not None:
+                            self.dragging = True
+                            self._drag_piece_index = idx
+                            self._drag_pos = self.event.pos
+                            # Change cursor to hand while dragging
+                            try:
+                                pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_HAND)
+                            except Exception:
                                 try:
-                                    pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_HAND)
+                                    pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND))
                                 except Exception:
-                                    try:
-                                        pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND))
-                                    except Exception:
-                                        pass
-                        # Else: keep selection; BoardPage will handle click-to-move on mouse up
-                    else:
-                        # No selection yet: attempt to select piece at pos
-                        self.select_piece(pos)
-                        if self.selected_piece is not None and settings_file_manager.get_setting("drag_drop"):
-                            # Start dragging immediately when selecting a piece on mousedown
-                            idx = self._get_piece_index_at_pos(self.selected_piece)
-                            if idx is not None:
-                                self.dragging = True
-                                self._drag_piece_index = idx
-                                self._drag_pos = self.event.pos
-                                # Change cursor to hand while dragging
+                                    pass
+                    # Else: keep selection; BoardPage will handle click-to-move on mouse up
+                else:
+                    # No selection yet: attempt to select piece at pos
+                    self.select_piece(pos)
+                    if self.selected_piece is not None and settings_file_manager.get_setting("drag_drop"):
+                        # Start dragging immediately when selecting a piece on mousedown
+                        idx = self._get_piece_index_at_pos(self.selected_piece)
+                        if idx is not None:
+                            self.dragging = True
+                            self._drag_piece_index = idx
+                            self._drag_pos = self.event.pos
+                            # Change cursor to hand while dragging
+                            try:
+                                pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_HAND)
+                            except Exception:
                                 try:
-                                    pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_HAND)
+                                    pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND))
                                 except Exception:
-                                    try:
-                                        pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_HAND))
-                                    except Exception:
-                                        pass
-            elif self.event.type == pygame.MOUSEMOTION and self.dragging and pygame.mouse.get_pressed()[0]:
-                # Update drag position while holding left button
-                self._drag_pos = self.event.pos
-            elif self.event.type == pygame.MOUSEBUTTONUP and self.event.button == 1:
-                # Stop dragging on release; BoardPage will trigger the move using current cursor square
-                if self.dragging:
-                    self.dragging = False
-                    self._drag_piece_index = None
-                    self._drag_pos = None
-                    # Restore default arrow cursor
+                                    pass
+        elif self.event and self.event.type == pygame.MOUSEMOTION and self.dragging and pygame.mouse.get_pressed()[0]:
+            # Update drag position while holding left button
+            self._drag_pos = self.event.pos
+        elif self.event and self.event.type == pygame.MOUSEBUTTONUP and self.event.button == 1:
+            # Stop dragging on release; BoardPage will trigger the move using current cursor square
+            if self.dragging:
+                self.dragging = False
+                self._drag_piece_index = None
+                self._drag_pos = None
+                # Restore default arrow cursor
+                try:
+                    pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                except Exception:
                     try:
-                        pygame.mouse.set_system_cursor(pygame.SYSTEM_CURSOR_ARROW)
+                        pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_ARROW))
                     except Exception:
-                        try:
-                            pygame.mouse.set_cursor(pygame.cursors.Cursor(pygame.SYSTEM_CURSOR_ARROW))
-                        except Exception:
-                            pass
+                        pass
 
         # Poll for incoming network moves if in multiplayer
         if game_state.multiplayer and game_state.net_socket is not None:
@@ -638,13 +652,22 @@ class BoardPiecesManager:
             return
         if not self.selected_piece:
             return
+        if to_pos is None:
+            # Nothing hovered / invalid square
+            return
 
         from_pos = self.selected_piece
         if to_pos == from_pos:
             return  # No movement
 
-        from_x, from_y = int(from_pos[0]) - 1, int(from_pos[1]) - 1
-        to_x, to_y = int(to_pos[0]) - 1, int(to_pos[1]) - 1
+        try:
+            from_x, from_y = int(from_pos[0]) - 1, int(from_pos[1]) - 1
+            to_x, to_y = int(to_pos[0]) - 1, int(to_pos[1]) - 1
+        except Exception:
+            # Invalid coordinate format
+            self.selected_piece = None
+            self.selected_possible_moves = []
+            return
 
         if not (0 <= to_x < 8 and 0 <= to_y < 8):
             self.selected_piece = None
@@ -750,7 +773,21 @@ class BoardPiecesManager:
             break
 
         if captured_piece_index is not None:
-            self.pieces.pop(captured_piece_index)
+                captured_piece = self.pieces.pop(captured_piece_index)
+                # Record capture for UI (captured piece code derived from original layout piece_code variable above)
+                try:
+                    code = captured_piece[0].piece_color.name[0]  # W or B of captured piece
+                    ptype = captured_piece[0].piece_type.name[0]
+                    if captured_piece[0].piece_type == PieceType.KNIGHT:
+                        ptype = 'N'
+                    full_code = f"{code}{ptype}"
+                    # If white moved then white captured a black piece, etc. We recorded after turn switch; infer by opposite color of captured piece
+                    if code == 'B':
+                        self.captured_by_white.append(full_code)
+                    else:
+                        self.captured_by_black.append(full_code)
+                except Exception:
+                    pass
 
         if game_state.multiplayer and game_state.net_socket is not None and from_pos is not None and moved:
             try:
@@ -899,7 +936,16 @@ class BoardPiecesManager:
             # Remove captured piece from list
             if captured_piece_index is not None:
                 try:
-                    self.pieces.pop(captured_piece_index)
+                    captured_piece = self.pieces.pop(captured_piece_index)
+                    code = captured_piece[0].piece_color.name[0]
+                    ptype = captured_piece[0].piece_type.name[0]
+                    if captured_piece[0].piece_type == PieceType.KNIGHT:
+                        ptype = 'N'
+                    full_code = f"{code}{ptype}"
+                    if code == 'B':
+                        self.captured_by_white.append(full_code)
+                    else:
+                        self.captured_by_black.append(full_code)
                 except Exception:
                     pass
 
@@ -1210,6 +1256,8 @@ class BoardPiecesManager:
             'en_passant_target': self.en_passant_target,
             'last_moved_pos': self.last_moved_pos,
             'is_check_mate': self.is_check_mate,
+            'captured_by_white': self.captured_by_white[:],
+            'captured_by_black': self.captured_by_black[:],
         }
 
     def _restore_state(self, snap: dict):
@@ -1225,6 +1273,8 @@ class BoardPiecesManager:
         self.en_passant_target = snap['en_passant_target']
         self.last_moved_pos = snap['last_moved_pos']
         self.is_check_mate = snap['is_check_mate']
+        self.captured_by_white = snap.get('captured_by_white', [])[:]
+        self.captured_by_black = snap.get('captured_by_black', [])[:]
         # Re-evaluate check position
         try:
             self.is_under_check, king_pos_c = is_check(self.layout, self.turn)
@@ -1235,6 +1285,126 @@ class BoardPiecesManager:
             pass
         self.selected_piece = None
         self.selected_possible_moves = []
+
+    # --- Captured pieces helpers ---
+    @staticmethod
+    def _piece_value(code: str) -> int:
+        # code like 'WP','BQ'; ignore color letter at index 0
+        if len(code) < 2:
+            return 0
+        t = code[1]
+        if t == 'P': return 1
+        if t in ('N','B'): return 3
+        if t == 'R': return 5
+        if t == 'Q': return 9
+        return 0
+
+    def get_captured_sorted(self):
+        """Return (my_captures, opponent_captures) lists of piece codes sorted by value ascending.
+        Perspective: 'my_captures' are pieces I've taken from opponent.
+        """
+        if self.player == 'white':
+            my = self.captured_by_white
+            opp = self.captured_by_black
+        else:
+            my = self.captured_by_black
+            opp = self.captured_by_white
+        key_fn = lambda c: (self._piece_value(c), c[1])  # stable secondary by type letter
+        return (sorted(my, key=key_fn), sorted(opp, key=key_fn))
+
+    def _draw_captured_pieces_panel(self):
+        """Render captured pieces (opponent at top, mine at bottom) in the free space to the right of board.
+        Assumes the board occupies left portion; this function paints inside remaining horizontal area.
+        """
+        # Determine starting x after board
+        board_pixels_w = self.square_size * 8
+        panel_x = board_pixels_w + 8  # gap after board
+        available_w = self.screen.get_width() - panel_x - 4
+        if available_w < 24:
+            return
+
+        my_caps, opp_caps = self.get_captured_sorted()
+
+        # Icon size & spacing
+        mini = max(14, int(self.square_size * 0.38))
+        v_gap = 2            # vertical gap between wrapped rows
+        group_gap = 0        # horizontal gap between groups (none)
+
+        # Overlap per additional piece inside a group (aggressive to conserve width)
+        overlap_dx_map = {
+            'P': max(1, mini // 7),
+            'N': max(2, mini // 6),
+            'B': max(2, mini // 6),
+            'R': max(2, mini // 6),
+            'Q': max(3, mini // 5),
+            'K': max(3, mini // 5),
+        }
+
+        type_map = {
+            'P': PieceType.PAWN,
+            'N': PieceType.KNIGHT,
+            'B': PieceType.BISHOP,
+            'R': PieceType.ROOK,
+            'Q': PieceType.QUEEN,
+        }
+
+        top_y = self.board_top_bar_height + 4
+
+        def iter_groups(codes):
+            i = 0
+            L = len(codes)
+            while i < L:
+                letter = codes[i][1] if len(codes[i]) > 1 else ''
+                j = i + 1
+                while j < L and len(codes[j]) > 1 and codes[j][1] == letter:
+                    j += 1
+                yield letter, codes[i:j]
+                i = j
+
+        def draw_grouped(codes, start_y):
+            x = panel_x
+            y = start_y
+            screen_w = self.screen.get_width()
+            for letter, group in iter_groups(codes):
+                dx = overlap_dx_map.get(letter, max(2, mini // 6))
+                group_width = mini if len(group) == 1 else mini + (len(group) - 1) * dx
+                if x + group_width > screen_w - 2:  # wrap
+                    x = panel_x
+                    y += mini + v_gap
+                # Draw pieces with overlap
+                for idx_g, code in enumerate(group):
+                    pt = type_map.get(code[1])
+                    if not pt:
+                        continue
+                    piece_color = PieceColor.WHITE if code[0] == 'W' else PieceColor.BLACK
+                    surf = Piece.get_surface(mini, pt, piece_color)
+                    self.screen.blit(surf, (x + idx_g * dx, y))
+                x += group_width + group_gap
+            return y + mini
+
+        # Top (opponent captures)
+        draw_grouped(opp_caps, top_y)
+
+        # Bottom (my captures) – estimate height so we anchor from bottom-up without jumping early.
+        def estimate_height(codes):
+            if not codes:
+                return mini
+            x = panel_x
+            y_offset = 0
+            screen_w = self.screen.get_width()
+            for letter, group in iter_groups(codes):
+                dx = overlap_dx_map.get(letter, max(2, mini // 6))
+                group_width = mini if len(group) == 1 else mini + (len(group) - 1) * dx
+                if x + group_width > screen_w - 2:
+                    x = panel_x
+                    y_offset += mini + v_gap
+                x += group_width + group_gap
+            return y_offset + mini
+
+        needed_h = estimate_height(my_caps)
+        bottom_limit = self.screen.get_height() - 4
+        start_y = bottom_limit - needed_h
+        draw_grouped(my_caps, start_y)
 
     def _push_history_snapshot(self):
         # Truncate forward history if we branched
