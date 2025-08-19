@@ -99,7 +99,7 @@ class BoardPiecesManager:
         # Multiplayer: track opponent's last move (from_pos, to_pos) in 1-based coords
         self.opponent_last_move = None 
         # Bot rating & timing (rating-based adaptive bot). Default rating 300.
-        self.bot_rating = 3000
+        self.bot_rating = 1200
         self.bot_move_delay = 0.6  # target total delay (thinking + post delay) lightweight
         self._engine_rating_config_applied = None  # track last rating applied to engine options
 
@@ -181,6 +181,14 @@ class BoardPiecesManager:
 
         # En passant: target square available for en passant capture on the immediate next move
         self.en_passant_target = None
+        # If human chose black in single-player, let engine (white) start immediately
+        if not flip:
+            try:
+                if not game_state.multiplayer and self.player == "black":
+                    # Kick off engine thinking for white's opening move
+                    self._start_engine_think()
+            except Exception:
+                pass
 
     # Don't reset global game state here; menu/start flow controls it.
 
@@ -384,6 +392,12 @@ class BoardPiecesManager:
                 else:
                     king_pos_c = None
                 game_state.check_position = king_pos_c
+                # After flipping to black in single-player at start, trigger engine's first (white) move
+                try:
+                    if not game_state.multiplayer and self.player == "black" and self.turn == "white" and not self.engine_thinking:
+                        self._start_engine_think()
+                except Exception:
+                    pass
         
         if self.is_check_mate or self._no_move_left():
             self.is_check_mate = True
