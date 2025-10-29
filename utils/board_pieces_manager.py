@@ -334,9 +334,6 @@ class BoardPiecesManager:
 
         if self.is_check_mate: self._draw_checkmate_popup()
         self.reset_popup.draw()
-        
-        # Update the display once after all drawing operations
-        pygame.display.flip()
 
         # Handle the event
         if self.event:
