@@ -58,6 +58,12 @@ class Popup:
         if not self.visible:
             return
 
+        # Check if screen size has changed and recreate overlay if needed
+        current_size = self.screen.get_size()
+        if self.overlay.get_size() != current_size:
+            self.overlay = pygame.Surface(current_size, pygame.SRCALPHA)
+            self.overlay.fill((0, 0, 0, 180))
+
         # Use the cached overlay surface
         self.screen.blit(self.overlay, (0, 0))
         self.screen.blit(self.text, self.text_rect.move(self.popup_rect.topleft))
