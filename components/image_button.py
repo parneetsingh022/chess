@@ -44,13 +44,16 @@ class SettingsButton(ImageButton):
 class RestartButton(ImageButton):
     def __init__(self):
         super().__init__(resource_path("assets/icons/restart_button_icon.png"), 30, 30)
+        
+        # Cache both enabled and disabled images
+        self.enabled_image = self.image
+        disabled_img = pygame.image.load(resource_path("assets/icons/restart_button_icon_disabled.png")).convert_alpha()
+        self.disabled_image = pygame.transform.smoothscale(disabled_img, (30, 30))
 
     def disable(self):
-        self.image = pygame.image.load(resource_path("assets/icons/restart_button_icon_disabled.png")).convert_alpha()
-        self.image = pygame.transform.smoothscale(self.image, (30, 30))
+        self.image = self.disabled_image
         self.disabled = True
 
     def enable(self):
-        self.image = pygame.image.load(resource_path("assets/icons/restart_button_icon.png")).convert_alpha()
-        self.image = pygame.transform.smoothscale(self.image, (30, 30))
+        self.image = self.enabled_image
         self.disabled = False

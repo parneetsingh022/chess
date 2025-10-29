@@ -14,8 +14,16 @@ class PieceColor(Enum):
     BLACK = 0
     WHITE = 1
 
+# Global cache for the chess pieces image to avoid repeated loading
+_piece_image_cache = None
+
+# Global cache for pre-scaled piece surfaces
+_scaled_piece_cache = {}
+
 class Piece:
     def __init__(self, screen: pygame.Surface, square_size: int, player: str, piece_type: PieceType, piece_color: PieceColor):
+        global _piece_image_cache
+        
         self.screen = screen
         self.square_size = square_size
         self.player = player
@@ -24,7 +32,11 @@ class Piece:
 
         self.piece_width = 128  # Assuming each piece is 128x128 pixels
         self.piece_height = 128
-        self.image = pygame.image.load(resource_path("assets/chess_pieces_edited.png")).convert_alpha()
+        
+        # Load the image only once and cache it
+        if _piece_image_cache is None:
+            _piece_image_cache = pygame.image.load(resource_path("assets/chess_pieces_edited.png")).convert_alpha()
+        self.image = _piece_image_cache
 
     def _extract_piece(self):
         """
@@ -63,13 +75,16 @@ class Piece:
             x = (x - 1) * self.square_size
             y = (y - 1) * self.square_size + board_top_bar_height
 
-        piece = self._extract_piece()
-
-        # Calculate the new size for the piece
-        new_size = (self.square_size, self.square_size)
-
-        # Resize the piece using smoothscale for better quality
-        resized_piece = pygame.transform.smoothscale(piece, new_size)
+        # Create a cache key based on piece type, color, and size
+        cache_key = (self.piece_type.value, self.piece_color.value, self.square_size)
+        
+        # Check if this piece at this size is already cached
+        if cache_key not in _scaled_piece_cache:
+            piece = self._extract_piece()
+            new_size = (self.square_size, self.square_size)
+            _scaled_piece_cache[cache_key] = pygame.transform.smoothscale(piece, new_size)
+        
+        resized_piece = _scaled_piece_cache[cache_key]
 
         # Display the resized piece on the screen
         self.screen.blit(resized_piece, (x, y))
