@@ -21,6 +21,10 @@ class Popup:
         self.callbacks = callbacks if callbacks else {}
         self.buttons = self.create_buttons()
         self.visible = False
+        
+        # Cache the overlay surface to avoid creating it every frame
+        self.overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        self.overlay.fill((0, 0, 0, 180))  # Black with alpha for transparency
 
         
 
@@ -54,10 +58,8 @@ class Popup:
         if not self.visible:
             return
 
-        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 180))  # Black with alpha for transparency
-
-        self.screen.blit(overlay, (0, 0))
+        # Use the cached overlay surface
+        self.screen.blit(self.overlay, (0, 0))
         self.screen.blit(self.text, self.text_rect.move(self.popup_rect.topleft))
 
         for text, button, _ in self.buttons:
