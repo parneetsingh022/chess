@@ -114,22 +114,19 @@ def king_moves(board, color, x, y, king_moved, rook1_moved, rook2_moved):
 
 def flatten(nested_list):
     """
-    Flattens a nested list into a single list, safely handling deeply nested structures.
+    Flattens a 2D board list into a single list.
+    Optimized for the specific case of a chess board (2D list).
     
     Args:
-        nested_list (list): The list to flatten.
+        nested_list (list): The 2D list to flatten.
     
     Returns:
         list: A single flat list with all elements.
     """
+    # For a 2D board, we can simply iterate through rows
     result = []
-    stack = [nested_list]
-    while stack:
-        current = stack.pop()
-        if isinstance(current, list):
-            stack.extend(reversed(current))  # Add elements in reverse order to process correctly
-        else:
-            result.append(current)
+    for row in nested_list:
+        result.extend(row)
     return result
 
 def is_check(board, color):

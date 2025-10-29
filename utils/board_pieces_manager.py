@@ -12,6 +12,9 @@ from states.gamestate import game_state
 from components.popup import Popup
 from constants.fonts import CHECK_MATETEXT_MAIN
 
+# Global cache for circle surfaces used in movement indicators
+_circle_surface_cache = {}
+
 
 def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, rook2_moved):
     # Adjust positions based on player perspective
@@ -31,17 +34,31 @@ def get_possible_positions(piece, color, board, x, y, king_moved, rook1_moved, r
         moves = []
 
     # If the king is under check, filter moves to only include those that prevent check
+    # Optimize by storing original piece and using in-place modifications
     valid_moves = []
+    opponent_color = "white" if color == "black" else "black"
+    original_piece = board[y-1][x-1]
+    
+    piece_code = f"{color[0]}{piece.piece_type.name[0]}"
+    if piece.piece_type == PieceType.KNIGHT:
+        piece_code = f"{color[0]}N"
+    piece_code = piece_code.upper()
+    
     for move in moves:
-        new_board = [row[:] for row in board]  # Create a copy of the board
-        new_board[y-1][x-1] = ""  # Remove the piece from the original position
-        piece_code = f"{color[0]}{piece.piece_type.name[0]}"
-        if piece.piece_type == PieceType.KNIGHT:
-            piece_code = f"{color[0]}N"
-        new_board[move[1]-1][move[0]-1] = piece_code.upper()  # Place the piece in the new position
-        if not is_check(new_board, "white" if color == "black" else "black")[0]:
-            
+        # Store the target square's original piece
+        target_piece = board[move[1]-1][move[0]-1]
+        
+        # Make the move temporarily on the actual board
+        board[y-1][x-1] = ""
+        board[move[1]-1][move[0]-1] = piece_code
+        
+        # Check if this move prevents check
+        if not is_check(board, opponent_color)[0]:
             valid_moves.append(move)
+        
+        # Restore the board state
+        board[y-1][x-1] = original_piece
+        board[move[1]-1][move[0]-1] = target_piece
             
     moves = valid_moves
 
@@ -122,11 +139,13 @@ class BoardPiecesManager:
         pygame.draw.rect(self.screen, color, (x, y, self.square_size, self.square_size), 4)
 
     def _no_move_left(self):
-        if not self.is_under_check: return
+        if not self.is_under_check: 
+            return False
         for piece in self.pieces:
             if piece[0].piece_color.name.lower() == self.turn:
                 moves = get_possible_positions(piece[0], piece[0].piece_color.name.lower(), self.layout, piece[1], piece[2], False, False, False)
-                if moves: return False
+                if moves: 
+                    return False
 
         return True
 
@@ -138,15 +157,19 @@ class BoardPiecesManager:
         x_center = (x - 1) * self.square_size + self.square_size // 2
         y_center = (y - 1) * self.square_size + self.square_size // 2 + self.board_top_bar_height
 
-        # Create a higher resolution surface (4 times the original size)
-        high_res_size = self.square_size * 4
-        high_res_surface = pygame.Surface((high_res_size, high_res_size), pygame.SRCALPHA)
+        # Check if we have a cached circle surface for this size
+        if self.square_size not in _circle_surface_cache:
+            # Create a higher resolution surface (4 times the original size)
+            high_res_size = self.square_size * 4
+            high_res_surface = pygame.Surface((high_res_size, high_res_size), pygame.SRCALPHA)
 
-        # Draw the circle on the high resolution surface
-        pygame.draw.circle(high_res_surface, (105, 176, 50), (high_res_size // 2, high_res_size // 2), high_res_size // 6)
+            # Draw the circle on the high resolution surface
+            pygame.draw.circle(high_res_surface, (105, 176, 50), (high_res_size // 2, high_res_size // 2), high_res_size // 6)
 
-        # Scale the high resolution surface down to the original size
-        scaled_surface = pygame.transform.smoothscale(high_res_surface, (self.square_size, self.square_size))
+            # Scale the high resolution surface down to the original size and cache it
+            _circle_surface_cache[self.square_size] = pygame.transform.smoothscale(high_res_surface, (self.square_size, self.square_size))
+
+        scaled_surface = _circle_surface_cache[self.square_size]
 
         # Blit the scaled surface onto the main screen
         self.screen.blit(scaled_surface, (x_center - self.square_size // 2, y_center - self.square_size // 2))
